@@ -1,0 +1,17 @@
+{
+  "id": 2,
+  "title": "Minimize String Imbalance",
+  "statement": "The \"imbalance\" of a string is defined as the difference between the frequency of the most frequently occurring character and the frequency of the least frequently occurring character (among characters that appear at least once in the string).\n\nFor example, in the string \"abaac\", 'a' appears 3 times, 'b' appears 1 time, and 'c' appears 1 time. The most frequent character is 'a' (3 times) and the least frequent are 'b' and 'c' (1 time). The imbalance is 3 - 1 = 2.\n\nYou are given a string S consisting of lowercase English letters. You must delete exactly one character from the string. Find the minimum possible imbalance of the string after the deletion. Note that if the resulting string contains only one unique character, or if all present characters have the exact same frequency, the imbalance is 0.",
+  "input_format": "The only line of input contains the string S.",
+  "output_format": "Print a single integer: the minimum possible imbalance after deleting exactly one character.",
+  "constraints": [
+    "2 <= |S| <= 100000",
+    "S consists only of lowercase English letters."
+  ],
+  "difficulty": "EASY",
+  "tags": [
+    "strings"
+  ],
+  "time_limit_ms": 2000,
+  "memory_limit_mb": 256
+}
