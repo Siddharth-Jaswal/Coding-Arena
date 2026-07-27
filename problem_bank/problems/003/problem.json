@@ -1,0 +1,18 @@
+{
+  "id": 3,
+  "title": "Character Diversity Target",
+  "statement": "You are given a string S consisting of lowercase English letters and an integer K.\n\nIn a single operation, you can choose any character in S and replace it with any other lowercase English letter.\n\nYour goal is to make the number of distinct characters in S exactly equal to K.\n\nFind the minimum number of operations required to achieve this. If it is impossible, output -1.",
+  "input_format": "The first line contains the string S.\nThe second line contains the integer K.",
+  "output_format": "Print a single integer representing the minimum number of operations required, or -1 if it is impossible.",
+  "constraints": [
+    "1 <= |S| <= 100000",
+    "1 <= K <= 26",
+    "S consists only of lowercase English letters."
+  ],
+  "difficulty": "EASY",
+  "tags": [
+    "strings"
+  ],
+  "time_limit_ms": 2000,
+  "memory_limit_mb": 256
+}
