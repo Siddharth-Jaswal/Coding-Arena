@@ -1,0 +1,17 @@
+{
+  "id": 1,
+  "title": "Stabilize the Peaks",
+  "statement": "You are given an array of N positive integers representing the heights of consecutive mountains. A mountain is considered a \"peak\" if it is strictly taller than both its immediate left and immediate right neighbors. The first and last mountains can never be peaks.\n\nYou want to stabilize the landscape so that it contains no peaks. You can reduce the height of any mountain by 1 unit at the cost of 1 operation. You may apply this operation any number of times to any mountain.\n\nFind the minimum total number of operations required so that no mountain in the array is a peak.",
+  "input_format": "The first line contains a single integer N, representing the number of mountains.\nThe second line contains N space-separated integers A[1], A[2], ..., A[N], where A[i] represents the height of the i-th mountain.",
+  "output_format": "Print a single integer: the minimum total number of operations required.",
+  "constraints": [
+    "3 <= N <= 100000",
+    "1 <= A[i] <= 10000"
+  ],
+  "difficulty": "EASY",
+  "tags": [
+    "arrays"
+  ],
+  "time_limit_ms": 2000,
+  "memory_limit_mb": 256
+}
