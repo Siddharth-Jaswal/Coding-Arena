@@ -36,23 +36,31 @@ const worker = new Worker('judge', async (job) => {
             WHERE id = $1
         `, [submission_id]);
 
-        // Execute actual judge engine
-        const verdict = await judgeEngine.run(submission_id);
+        // 3. Process the submission using the real Judge Engine
+        const { verdict, executionTimeMs } = await judgeEngine.run(submission_id);
 
-        // Mark as completed
+        // 4. Update status to completed with verdict and metrics
         await pool.query(`
             UPDATE submissions 
-            SET status = 'completed', verdict = $2, finished_at = NOW() 
-            WHERE id = $1
-        `, [submission_id, verdict]);
+            SET status = 'completed', 
+                verdict = $1, 
+                finished_at = NOW(),
+                execution_time_ms = $2
+            WHERE id = $3
+        `, [verdict, executionTimeMs, submission_id]);
 
-        console.log(`Submission ${submission_id} completed with verdict: ${verdict}`);
-    } catch (err) {
-        console.error(`Failed to process submission ${submission_id}:`, err);
-        // On error, mark as completed with error verdict
+        console.log(`[Worker] Sub ${submission_id} completed | Verdict: ${verdict} | Time: ${executionTimeMs}ms`);
+
+    } catch (error) {
+        console.error(`[Worker] Failed to process submission ${submission_id}:`, error);
+        
+        // On hard failure, update to Internal Error
         await pool.query(`
             UPDATE submissions 
-            SET status = 'completed', verdict = 'Internal Error', finished_at = NOW() 
+            SET status = 'completed', 
+                verdict = 'Internal Error', 
+                finished_at = NOW(),
+                execution_time_ms = 0
             WHERE id = $1
         `, [submission_id]);
     }
