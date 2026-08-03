@@ -8,12 +8,13 @@ async function delay(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-async function submitAndPoll(sourceCode, expectedVerdict, description) {
+async function submitAndPoll(sourceCode, expectedVerdict, description, problemId = 1) {
     console.log(`\n=== Testing: ${description} ===`);
     try {
         const postRes = await axios.post(API_URL, {
             user_id: 1,
-            problem_id: 1, // Using problem 1
+            problem_id: problemId,
+
             language: "cpp17",
             source_code: sourceCode
         });
@@ -67,11 +68,10 @@ async function verifyAll() {
         const ceCode = `
         #include <iostream>
         int main() {
-            std::cout << "Missing semicolon"
-            return 0;
+            cout << "Missing namespace and syntax error"
         }
         `;
-        await submitAndPoll(ceCode, 'Compilation Error', 'Compilation Error');
+        await submitAndPoll(ceCode, 'Compilation Error', 'Compilation Error', 8);
 
         // 2. Wrong Answer
         const waCode = `
@@ -81,25 +81,55 @@ async function verifyAll() {
             return 0;
         }
         `;
-        await submitAndPoll(waCode, 'Wrong Answer', 'Wrong Answer');
+        await submitAndPoll(waCode, 'Wrong Answer', 'Wrong Answer', 8);
 
-        // 3. Accepted
-        // We checked the DB and cache manually. The test case 001.in is:
-        // 3
-        // 1 10000 1
-        // And the expected output is 9999.
-        // For the purpose of verifying the JudgeEngine works end-to-end, we will just output 9999 directly.
+        // For problem 8 (Maximum Subarray Sum):
+        // First line: N
+        // Second line: N space-separated integers
         const acCode = `
         #include <iostream>
+        #include <vector>
         using namespace std;
         int main() {
-            cout << 9999 << endl;
+            int n;
+            if (!(cin >> n)) return 0;
+            long long max_so_far = -1e18;
+            long long current_max = -1e18;
+            for (int i = 0; i < n; i++) {
+                long long x;
+                cin >> x;
+                if (current_max < 0) current_max = x;
+                else current_max += x;
+                if (current_max > max_so_far) max_so_far = current_max;
+            }
+            cout << max_so_far << endl;
             return 0;
         }
         `;
-        await submitAndPoll(acCode, 'Accepted', 'Accepted');
+        await submitAndPoll(acCode, 'Accepted', 'Accepted', 8);
         
-        console.log("\n🎉 Minimal Judge Verification Complete!");
+        // 4. Runtime Error
+        const reCode = `
+        #include <iostream>
+        int main() {
+            int* ptr = nullptr;
+            *ptr = 42; // Segfault
+            return 0;
+        }
+        `;
+        await submitAndPoll(reCode, 'Runtime Error', 'Runtime Error', 8);
+
+        // 5. Time Limit Exceeded
+        const tleCode = `
+        #include <iostream>
+        int main() {
+            while (true) {} // Infinite loop
+            return 0;
+        }
+        `;
+        await submitAndPoll(tleCode, 'Time Limit Exceeded', 'Time Limit Exceeded', 8);
+        
+        console.log("\n🎉 Judge Hardening Verification Complete!");
     } finally {
         await pool.end();
     }
