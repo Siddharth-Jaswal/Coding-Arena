@@ -8,12 +8,20 @@ class Executor {
      * @param {string} inputFilePath 
      * @returns {Promise<string>} Program's standard output
      */
-    async run(executablePath, inputFilePath) {
+    async run(executablePath, inputFilePath, timeLimitMs = 2000) {
         return new Promise((resolve, reject) => {
             const child = spawn(executablePath);
 
             let stdoutData = '';
             let stderrData = '';
+            let isKilled = false;
+
+            const startTime = performance.now();
+
+            const timer = setTimeout(() => {
+                isKilled = true;
+                child.kill('SIGKILL');
+            }, timeLimitMs);
 
             child.stdout.on('data', (data) => {
                 stdoutData += data.toString();
@@ -23,23 +31,44 @@ class Executor {
                 stderrData += data.toString();
             });
 
-            child.on('close', (code) => {
-                // Ignore code for now as we don't have Runtime Error verdict explicitly supported yet.
-                // Outputting stdout directly
-                resolve(stdoutData);
+            child.on('close', (code, signal) => {
+                clearTimeout(timer);
+                const endTime = performance.now();
+                const executionTimeMs = Math.round(endTime - startTime);
+
+                if (isKilled) {
+                    return reject(new Error("Time Limit Exceeded"));
+                }
+
+                if (code !== 0 || signal) {
+                    return reject(new Error("Runtime Error"));
+                }
+
+                resolve({ stdoutData, executionTimeMs });
             });
 
             child.on('error', (err) => {
+                clearTimeout(timer);
                 reject(err);
             });
 
             // Feed the input file into stdin
+            child.stdin.on('error', (err) => {
+                // Ignore EPIPE and EOF errors (happens if child exits before reading all input)
+                if (err.code !== 'EPIPE' && err.code !== 'EOF') {
+                    console.error('stdin error:', err);
+                }
+            });
+
             fs.readFile(inputFilePath)
                 .then(inputBuffer => {
-                    child.stdin.write(inputBuffer);
-                    child.stdin.end();
+                    if (!child.killed) {
+                        child.stdin.write(inputBuffer);
+                        child.stdin.end();
+                    }
                 })
                 .catch(err => {
+                    clearTimeout(timer);
                     child.kill();
                     reject(err);
                 });
