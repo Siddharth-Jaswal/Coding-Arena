@@ -5,9 +5,10 @@ import { ArenaLayout } from '../layouts/ArenaLayout';
 import LandingPage from '../pages/LandingPage';
 import DesignSystemShowcase from '../pages/DesignSystemShowcase';
 
+import ProblemsPage from '../pages/ProblemsPage';
+import ProblemPage from '../pages/ProblemPage';
+
 // Placeholder Pages
-const ProblemsPlaceholder = () => <div>Problems List Placeholder</div>;
-const ProblemArenaPlaceholder = () => <div>Problem Arena Placeholder</div>;
 const ProfilePlaceholder = () => <div>Profile Placeholder</div>;
 const UserSubmissionsPlaceholder = () => <div>User Submissions Placeholder</div>;
 const SubmissionDetailsPlaceholder = () => <div>Submission Details Placeholder</div>;
@@ -24,7 +25,8 @@ export const router = createBrowserRouter([
   {
     element: <AppLayout />,
     children: [
-      { path: 'problems', element: <ProblemsPlaceholder /> },
+      { path: 'problems', element: <ProblemsPage /> },
+      { path: 'problems/:id', element: <ProblemPage /> },
       { path: 'profile/:id', element: <ProfilePlaceholder /> },
       { path: 'profile/:id/submissions', element: <UserSubmissionsPlaceholder /> },
     ],
@@ -32,7 +34,6 @@ export const router = createBrowserRouter([
   {
     element: <ArenaLayout />,
     children: [
-      { path: 'problems/:id', element: <ProblemArenaPlaceholder /> },
       { path: 'submissions/:id', element: <SubmissionDetailsPlaceholder /> },
     ],
   },

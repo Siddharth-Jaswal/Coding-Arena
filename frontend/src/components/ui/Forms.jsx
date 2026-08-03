@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { Search, ChevronDown, Check } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -49,10 +49,35 @@ SearchBar.displayName = "SearchBar";
 // Basic Custom Select (Since no Headless UI is installed, we build a robust custom one using framer-motion)
 export const Select = React.forwardRef(({ options = [], value, onChange, placeholder = "Select...", className }, ref) => {
   const [isOpen, setIsOpen] = useState(false);
+  const containerRef = React.useRef(null);
   const selectedOption = options.find(opt => opt.value === value);
 
+  // Combine forwarded ref and internal ref
+  const setRefs = React.useCallback(
+    (node) => {
+      containerRef.current = node;
+      if (typeof ref === "function") ref(node);
+      else if (ref) ref.current = node;
+    },
+    [ref]
+  );
+
+  useEffect(() => {
+    const handleOutsideClick = (event) => {
+      if (containerRef.current && !containerRef.current.contains(event.target)) {
+        setIsOpen(false);
+      }
+    };
+    if (isOpen) {
+      document.addEventListener("mousedown", handleOutsideClick);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleOutsideClick);
+    };
+  }, [isOpen]);
+
   return (
-    <div className={cn("relative w-full", className)} ref={ref}>
+    <div className={cn("relative w-full", className)} ref={setRefs}>
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
@@ -68,7 +93,7 @@ export const Select = React.forwardRef(({ options = [], value, onChange, placeho
         {isOpen && (
           <motion.div
             {...dropdownTransition}
-            className="absolute top-full left-0 z-50 mt-1 max-h-60 w-full overflow-auto rounded-md border border-border bg-popover py-1 shadow-soft glass-panel"
+            className="absolute top-full left-0 z-50 mt-1 max-h-60 w-full overflow-auto rounded-md border border-border bg-[#0a0a0a]/95 backdrop-blur-xl py-1 shadow-[0_8px_32px_rgba(0,0,0,0.6)]"
           >
             {options.map((option) => (
               <button

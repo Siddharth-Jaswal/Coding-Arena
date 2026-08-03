@@ -8,3 +8,4 @@ export * from './Backgrounds';
 export * from './Forms';
 export * from './Overlay';
 export * from './Pagination';
+export * from './Table';
