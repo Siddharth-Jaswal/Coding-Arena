@@ -8,6 +8,8 @@ import DesignSystemShowcase from '../pages/DesignSystemShowcase';
 import ProblemsPage from '../pages/ProblemsPage';
 import ProblemPage from '../pages/ProblemPage';
 
+import ArenaPage from '../pages/ArenaPage';
+
 // Placeholder Pages
 const ProfilePlaceholder = () => <div>Profile Placeholder</div>;
 const UserSubmissionsPlaceholder = () => <div>User Submissions Placeholder</div>;
@@ -34,6 +36,7 @@ export const router = createBrowserRouter([
   {
     element: <ArenaLayout />,
     children: [
+      { path: 'problems/:id/solve', element: <ArenaPage /> },
       { path: 'submissions/:id', element: <SubmissionDetailsPlaceholder /> },
     ],
   },

@@ -114,13 +114,21 @@ export const CenterLayout = ({ children, className }) => (
   </div>
 );
 
-export const SplitPane = ({ leftPane, rightPane, leftRatio = 50, rightRatio = 50, className }) => {
+export const SplitPane = ({ leftPane, rightPane, leftRatio = 50, rightRatio = 50, direction = "horizontal", className }) => {
+  const isHoriz = direction === "horizontal";
   return (
-    <div className={cn("flex flex-col md:flex-row w-full h-full overflow-hidden", className)}>
+    <div className={cn("flex w-full h-full overflow-hidden", isHoriz ? "flex-col md:flex-row" : "flex-col", className)}>
       <div className="flex-1 overflow-hidden h-full flex flex-col" style={{ flexBasis: `${leftRatio}%` }}>
         {leftPane}
       </div>
-      <div className="w-full h-1 md:w-1 md:h-full bg-border/40 hover:bg-primary/50 cursor-col-resize transition-colors z-20 flex-shrink-0" />
+      <div 
+        className={cn(
+          "bg-border/40 hover:bg-primary/50 transition-colors z-20 flex-shrink-0",
+          isHoriz 
+            ? "w-full h-1 md:w-1 md:h-full cursor-row-resize md:cursor-col-resize" 
+            : "w-full h-1 cursor-row-resize"
+        )} 
+      />
       <div className="flex-1 overflow-hidden h-full flex flex-col" style={{ flexBasis: `${rightRatio}%` }}>
         {rightPane}
       </div>

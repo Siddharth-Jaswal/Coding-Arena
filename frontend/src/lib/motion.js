@@ -27,8 +27,8 @@ export const hoverLift = {
 
 export const hoverGlow = {
   whileHover: { 
-    boxShadow: "0 0 20px -5px hsl(var(--primary) / 0.4)",
-    borderColor: "hsl(var(--primary) / 0.5)",
+    boxShadow: "0 0 20px -5px rgba(96, 165, 250, 0.4)",
+    borderColor: "rgba(96, 165, 250, 0.5)",
     transition: { duration: 0.3 }
   },
 };

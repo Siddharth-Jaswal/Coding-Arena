@@ -24,11 +24,8 @@ apiClient.interceptors.request.use(
 apiClient.interceptors.response.use(
   (response) => response.data,
   (error) => {
-    // Global error handler
-    const customError = {
-      message: error.response?.data?.error || error.message || 'An unexpected error occurred',
-      status: error.response?.status,
-    };
+    const customError = new Error(error.response?.data?.error || error.message || 'An unexpected error occurred');
+    customError.status = error.response?.status;
     return Promise.reject(customError);
   }
 );
