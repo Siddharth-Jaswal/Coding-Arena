@@ -1,0 +1,17 @@
+{
+  "id": 12,
+  "title": "Anagram Check",
+  "statement": "Given two strings S and T, write a function to determine if T is an anagram of S.",
+  "input_format": "The first line contains string S.\nThe second line contains string T.",
+  "output_format": "Print 'true' if T is an anagram of S, otherwise print 'false'.",
+  "constraints": [
+    "1 <= |S|, |T| <= 10^5",
+    "Strings consist of lowercase English letters."
+  ],
+  "difficulty": "EASY",
+  "tags": [
+    "strings"
+  ],
+  "time_limit_ms": 1000,
+  "memory_limit_mb": 256
+}

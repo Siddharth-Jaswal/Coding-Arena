@@ -1,0 +1,17 @@
+{
+  "id": 16,
+  "title": "Assign Cookies",
+  "statement": "Assume you are an awesome parent and want to give your children some cookies. Each child i has a greed factor g[i], which is the minimum size of a cookie that the child will be content with; and each cookie j has a size s[j]. If s[j] >= g[i], we can assign the cookie j to the child i, and the child i will be content.\n\nOutput the maximum number of your children you can make content.",
+  "input_format": "The first line contains an integer N, the number of children.\nThe second line contains N integers representing g[i].\nThe third line contains an integer M, the number of cookies.\nThe fourth line contains M integers representing s[j].",
+  "output_format": "Print a single integer: the maximum number of content children.",
+  "constraints": [
+    "1 <= N, M <= 10^5",
+    "1 <= g[i], s[j] <= 2^31 - 1"
+  ],
+  "difficulty": "EASY",
+  "tags": [
+    "greedy"
+  ],
+  "time_limit_ms": 1000,
+  "memory_limit_mb": 256
+}

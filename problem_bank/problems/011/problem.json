@@ -1,0 +1,17 @@
+{
+  "id": 11,
+  "title": "Valid Brackets",
+  "statement": "Given a string containing just the characters '(', ')', '{', '}', '[' and ']', determine if the input string is valid.\n\nAn input string is valid if open brackets are closed by the same type of brackets, and they are closed in the correct order.",
+  "input_format": "A single line containing the string S.",
+  "output_format": "Print 'true' if the string is valid, otherwise print 'false'.",
+  "constraints": [
+    "1 <= |S| <= 10^5",
+    "S consists of parentheses only '()[]{}'."
+  ],
+  "difficulty": "EASY",
+  "tags": [
+    "stack-queue"
+  ],
+  "time_limit_ms": 1000,
+  "memory_limit_mb": 256
+}

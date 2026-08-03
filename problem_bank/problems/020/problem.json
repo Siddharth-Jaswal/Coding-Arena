@@ -1,0 +1,17 @@
+{
+  "id": 20,
+  "title": "Majority Element",
+  "statement": "Given an array nums of size N, return the majority element.\n\nThe majority element is the element that appears more than floor(N / 2) times. You may assume that the majority element always exists in the array.",
+  "input_format": "The first line contains an integer N.\nThe second line contains N space-separated integers.",
+  "output_format": "Print a single integer representing the majority element.",
+  "constraints": [
+    "1 <= N <= 10^5",
+    "-10^9 <= nums[i] <= 10^9"
+  ],
+  "difficulty": "EASY",
+  "tags": [
+    "arrays"
+  ],
+  "time_limit_ms": 1000,
+  "memory_limit_mb": 256
+}

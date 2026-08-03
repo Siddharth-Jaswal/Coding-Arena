@@ -1,0 +1,17 @@
+{
+  "id": 15,
+  "title": "Tree Diameter",
+  "statement": "Given an undirected tree consisting of N nodes numbered 1 to N, find its diameter. The diameter of a tree is the number of edges in the longest path between any two nodes.",
+  "input_format": "The first line contains an integer N.\nThe next N-1 lines each contain two space-separated integers U and V, representing an edge between node U and V.",
+  "output_format": "Print a single integer representing the diameter.",
+  "constraints": [
+    "1 <= N <= 10^5",
+    "1 <= U, V <= N"
+  ],
+  "difficulty": "MEDIUM",
+  "tags": [
+    "trees"
+  ],
+  "time_limit_ms": 2000,
+  "memory_limit_mb": 256
+}

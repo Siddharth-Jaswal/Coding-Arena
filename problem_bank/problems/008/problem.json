@@ -1,0 +1,17 @@
+{
+  "id": 8,
+  "title": "Maximum Subarray Sum",
+  "statement": "Given an array of N integers (which may include negative numbers), find the contiguous subarray (containing at least one number) which has the largest sum, and return its sum.",
+  "input_format": "The first line contains a single integer N.\nThe second line contains N space-separated integers.",
+  "output_format": "Print a single integer representing the maximum subarray sum.",
+  "constraints": [
+    "1 <= N <= 10^5",
+    "-10^4 <= A[i] <= 10^4"
+  ],
+  "difficulty": "MEDIUM",
+  "tags": [
+    "dynamic-programming"
+  ],
+  "time_limit_ms": 2000,
+  "memory_limit_mb": 256
+}

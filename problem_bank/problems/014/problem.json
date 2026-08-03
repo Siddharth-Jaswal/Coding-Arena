@@ -1,0 +1,17 @@
+{
+  "id": 14,
+  "title": "Middle of Linked List",
+  "statement": "You are given an array representing a singly linked list. Return the value of the middle node of the linked list. If there are two middle nodes, return the second middle node.\n\n*Note: Your program will receive the values sequentially. Treat them as the values of a linked list.*",
+  "input_format": "The first line contains an integer N, the number of nodes.\nThe second line contains N space-separated integers.",
+  "output_format": "Print a single integer representing the value of the middle node.",
+  "constraints": [
+    "1 <= N <= 10^5",
+    "1 <= node value <= 1000"
+  ],
+  "difficulty": "EASY",
+  "tags": [
+    "linked-list"
+  ],
+  "time_limit_ms": 1000,
+  "memory_limit_mb": 256
+}

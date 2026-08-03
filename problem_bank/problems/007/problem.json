@@ -1,0 +1,16 @@
+{
+  "id": 7,
+  "title": "Jump the Steps",
+  "statement": "You are climbing a staircase. It takes N steps to reach the top.\n\nEach time you can either climb 1 or 2 steps. In how many distinct ways can you climb to the top? Since the answer may be large, print it modulo 10^9 + 7.",
+  "input_format": "A single line containing an integer N.",
+  "output_format": "Print a single integer: the number of distinct ways to climb to the top, modulo 10^9 + 7.",
+  "constraints": [
+    "1 <= N <= 10^5"
+  ],
+  "difficulty": "EASY",
+  "tags": [
+    "dynamic-programming"
+  ],
+  "time_limit_ms": 1000,
+  "memory_limit_mb": 256
+}

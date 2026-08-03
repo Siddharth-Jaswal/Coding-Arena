@@ -1,0 +1,17 @@
+{
+  "id": 17,
+  "title": "Missing Number",
+  "statement": "Given an array containing N distinct numbers taken from the range [0, N], return the only number in the range that is missing from the array.",
+  "input_format": "The first line contains an integer N.\nThe second line contains N space-separated distinct integers.",
+  "output_format": "Print a single integer representing the missing number.",
+  "constraints": [
+    "1 <= N <= 10^5",
+    "0 <= nums[i] <= N"
+  ],
+  "difficulty": "EASY",
+  "tags": [
+    "arrays"
+  ],
+  "time_limit_ms": 1000,
+  "memory_limit_mb": 256
+}

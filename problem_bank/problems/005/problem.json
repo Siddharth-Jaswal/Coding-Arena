@@ -1,0 +1,17 @@
+{
+  "id": 5,
+  "title": "Maximize the Reservoir",
+  "statement": "You are given an array of N non-negative integers representing the heights of vertical lines drawn on a plane. The distance between adjacent lines is 1 unit.\n\nFind two lines that, together with the x-axis, form a container that holds the most water. Return the maximum amount of water the container can store.",
+  "input_format": "The first line contains a single integer N.\nThe second line contains N space-separated integers representing the heights.",
+  "output_format": "Print a single integer: the maximum area of water the container can hold.",
+  "constraints": [
+    "2 <= N <= 10^5",
+    "0 <= heights[i] <= 10^4"
+  ],
+  "difficulty": "MEDIUM",
+  "tags": [
+    "two-pointers"
+  ],
+  "time_limit_ms": 2000,
+  "memory_limit_mb": 256
+}

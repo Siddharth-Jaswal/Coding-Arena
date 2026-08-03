@@ -1,0 +1,17 @@
+{
+  "id": 18,
+  "title": "Longest Increasing Subsequence",
+  "statement": "Given an integer array nums, return the length of the longest strictly increasing subsequence.",
+  "input_format": "The first line contains an integer N.\nThe second line contains N space-separated integers.",
+  "output_format": "Print a single integer representing the length of the longest increasing subsequence.",
+  "constraints": [
+    "1 <= N <= 10^5",
+    "-10^9 <= nums[i] <= 10^9"
+  ],
+  "difficulty": "MEDIUM",
+  "tags": [
+    "dynamic-programming"
+  ],
+  "time_limit_ms": 1000,
+  "memory_limit_mb": 256
+}

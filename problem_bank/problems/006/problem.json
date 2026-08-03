@@ -1,0 +1,18 @@
+{
+  "id": 6,
+  "title": "Network Connectivity",
+  "statement": "You are given a network of N computers numbered from 1 to N. You are also given M direct connections between some pairs of computers.\n\nA group of computers is fully connected if there is a path of direct connections between any two computers in the group.\n\nDetermine the total number of disconnected network components in the system.",
+  "input_format": "The first line contains two integers N and M, representing the number of computers and the number of connections.\nThe next M lines each contain two integers U and V, indicating a direct connection between computer U and computer V.",
+  "output_format": "Print a single integer representing the number of connected components.",
+  "constraints": [
+    "1 <= N <= 10^5",
+    "0 <= M <= 10^5",
+    "1 <= U, V <= N"
+  ],
+  "difficulty": "MEDIUM",
+  "tags": [
+    "graphs"
+  ],
+  "time_limit_ms": 2000,
+  "memory_limit_mb": 256
+}

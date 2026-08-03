@@ -1,0 +1,17 @@
+{
+  "id": 10,
+  "title": "Unique Array Elements",
+  "statement": "Given an array of N integers sorted in non-decreasing order, find the number of unique elements in the array.",
+  "input_format": "The first line contains a single integer N.\nThe second line contains N space-separated integers.",
+  "output_format": "Print a single integer representing the number of unique elements.",
+  "constraints": [
+    "1 <= N <= 10^5",
+    "-10^9 <= A[i] <= 10^9"
+  ],
+  "difficulty": "EASY",
+  "tags": [
+    "arrays"
+  ],
+  "time_limit_ms": 1000,
+  "memory_limit_mb": 256
+}
