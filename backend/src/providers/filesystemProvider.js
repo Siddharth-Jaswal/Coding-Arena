@@ -1,88 +1,59 @@
-const fs = require('fs/promises');
+const fs = require('fs');
 const path = require('path');
+const ProblemProvider = require('./ProblemProvider');
 
-const PROBLEM_BANK_DIR = path.resolve(__dirname, '../../../problem_bank/problems');
-
-class FilesystemProvider {
-    /**
-     * Scans the problem bank and returns all valid numeric directory names (e.g. '001').
-     * Ignores non-numeric files/folders like .DS_Store or README.md.
-     */
-    async getAllProblemDirectories() {
-        try {
-            const entries = await fs.readdir(PROBLEM_BANK_DIR, { withFileTypes: true });
-            const validDirs = entries
-                .filter(entry => entry.isDirectory() && /^\d+$/.test(entry.name))
-                .map(entry => entry.name);
-            return validDirs;
-        } catch (error) {
-            console.error('FilesystemProvider error: Failed to read problem bank directory', error);
-            throw error;
-        }
+/**
+ * FilesystemProvider
+ * 
+ * Used ONLY by importProblemBank.js.
+ * This should NEVER be used by runtime APIs!
+ */
+class FilesystemProvider extends ProblemProvider {
+    constructor() {
+        super();
+        this.baseDir = path.join(__dirname, '../../../problem_bank/problems');
     }
 
-    /**
-     * Reads and parses problem.json for a specific problem folder.
-     */
-    async readProblemJson(folderName) {
-        const jsonPath = path.join(PROBLEM_BANK_DIR, folderName, 'problem.json');
-        try {
-            const data = await fs.readFile(jsonPath, 'utf8');
-            return JSON.parse(data);
-        } catch (error) {
-            if (error.code === 'ENOENT') return null; // File doesn't exist
-            console.error(`FilesystemProvider error: Failed to read ${jsonPath}`, error);
-            throw error;
-        }
+    async listProblems() {
+        // Only used by importer if it wanted a list, but our importer scans directly
+        throw new Error("listProblems not supported in import-only provider");
     }
 
-    /**
-     * Scans the public directory of a problem and returns paired sample tests.
-     * Output schema: [{ input: "...", output: "..." }]
-     */
-    async readPublicSampleTests(folderName) {
-        const publicDir = path.join(PROBLEM_BANK_DIR, folderName, 'public');
+    async getProblemById(id) {
+        const paddedId = String(id).padStart(3, '0');
+        const probDir = path.join(this.baseDir, paddedId);
+        const jsonPath = path.join(probDir, 'problem.json');
         
-        try {
-            const entries = await fs.readdir(publicDir, { withFileTypes: true });
-            
-            // Map files by base name (e.g., '01' from '01.in')
-            const testsMap = new Map();
-            
-            for (const entry of entries) {
-                if (!entry.isFile()) continue;
-                
-                const ext = path.extname(entry.name);
-                const base = path.basename(entry.name, ext);
-                
-                if (ext !== '.in' && ext !== '.out') continue;
-                
-                if (!testsMap.has(base)) {
-                    testsMap.set(base, { input: '', output: '' });
-                }
-                
-                const filePath = path.join(publicDir, entry.name);
-                const content = await fs.readFile(filePath, 'utf8');
-                
-                if (ext === '.in') {
-                    testsMap.get(base).input = content;
-                } else if (ext === '.out') {
-                    testsMap.get(base).output = content;
-                }
-            }
-            
-            // Convert to array and sort by test name (e.g. 01, 02) to maintain predictable order
-            const sortedKeys = Array.from(testsMap.keys()).sort();
-            return sortedKeys.map(key => testsMap.get(key));
+        if (!fs.existsSync(jsonPath)) return null;
+        return JSON.parse(fs.readFileSync(jsonPath, 'utf8'));
+    }
 
-        } catch (error) {
-            if (error.code === 'ENOENT') {
-                // Return empty array if public/ directory doesn't exist at all
-                return [];
-            }
-            console.error(`FilesystemProvider error: Failed to read tests from ${publicDir}`, error);
-            throw error;
+    async getPublicTestCases(id) {
+        return this._getTests(id, 'public');
+    }
+
+    async getPrivateTestCases(id) {
+        return this._getTests(id, 'private');
+    }
+
+    _getTests(id, dirName) {
+        const paddedId = String(id).padStart(3, '0');
+        const dirPath = path.join(this.baseDir, paddedId, dirName);
+        
+        if (!fs.existsSync(dirPath)) return [];
+        
+        const files = fs.readdirSync(dirPath).filter(f => f.endsWith('.in')).sort();
+        const tests = [];
+        
+        for (const inFile of files) {
+            const outFile = inFile.replace('.in', '.out');
+            tests.push({
+                input: fs.readFileSync(path.join(dirPath, inFile), 'utf8'),
+                output: fs.readFileSync(path.join(dirPath, outFile), 'utf8')
+            });
         }
+        
+        return tests;
     }
 }
 
