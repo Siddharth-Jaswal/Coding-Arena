@@ -9,7 +9,6 @@ import { ProblemPanel } from '@/components/arena/ProblemPanel';
 import { EditorPanel } from '@/components/arena/EditorPanel';
 import { BottomPanel } from '@/components/arena/BottomPanel';
 import { ActionBar } from '@/components/arena/ActionBar';
-import { submissionService } from '@/services/submissionService';
 import { problemApi } from '@/api/problems';
 import { useSubmission } from '@/hooks/useSubmission';
 import { SubmissionStatus } from '@/components/arena/SubmissionStatus';
@@ -27,10 +26,11 @@ const ArenaPage = () => {
   const problem = problemData ? { ...problemData.problem, sample_tests: problemData.sample_tests } : null;
 
   const [language, setLanguage] = useState('cpp');
-  const [isRunning, setIsRunning] = useState(false);
 
   const { 
-    submitSolution, 
+    submitSolution,
+    runSolution,
+    isRunning,
     isSubmitting,
     activeSubmission,
     consoleMessages, 
@@ -38,18 +38,9 @@ const ArenaPage = () => {
     retryPolling
   } = useSubmission(id, language);
 
-  const handleRun = async () => {
-    setIsRunning(true);
-    setConsoleMessages('Running code against sample tests...\n');
-    try {
-      const code = localStorage.getItem(`arena_code_${id}_${language}`) || '';
-      const result = await submissionService.runCode(id, code, language);
-      setConsoleMessages(prev => prev + `Status: ${result.status}\nOutput:\n${result.output}\nTime: ${result.execution_time_ms}ms | Memory: ${result.memory_mb}MB`);
-    } catch (e) {
-      setConsoleMessages(prev => prev + '\nExecution failed.');
-    } finally {
-      setIsRunning(false);
-    }
+  const handleRun = () => {
+    const code = localStorage.getItem(`arena_code_${id}_${language}`) || '';
+    runSolution(code);
   };
 
   const handleSubmit = () => {

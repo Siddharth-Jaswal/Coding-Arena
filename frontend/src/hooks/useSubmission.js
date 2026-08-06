@@ -92,8 +92,44 @@ export const useSubmission = (problemId, language) => {
     };
   }, []);
 
+  const runCodeMutation = useMutation({
+    mutationFn: (source_code) => {
+      setConsoleMessages('');
+      appendToConsole('Running code against public sample tests...');
+      return submissionApi.runCode({
+        problem_id: parseInt(problemId, 10),
+        language,
+        source_code,
+      });
+    },
+    onSuccess: (data) => {
+      appendToConsole(`Status: ${data.verdict}\nExecution Time: ${data.execution_time_ms}ms`);
+      
+      if (data.compiler_output) {
+        appendToConsole(`Compiler Output:\n${data.compiler_output}`);
+      }
+
+      if (data.test_results && data.test_results.length > 0) {
+        data.test_results.forEach((test, index) => {
+          appendToConsole(
+            `Test Case ${test.test_case || index + 1}:\n` +
+            `Verdict: ${test.status}\n` +
+            `Time: ${test.execution_time_ms}ms\n` +
+            `Expected Output:\n${test.expected_output}\n` +
+            `Actual Output:\n${test.actual_output}`
+          );
+        });
+      }
+    },
+    onError: (error) => {
+      appendToConsole(`Run failed: ${error.message || 'Unknown error'}`);
+    }
+  });
+
   return {
     submitSolution: submitMutation.mutate,
+    runSolution: runCodeMutation.mutate,
+    isRunning: runCodeMutation.isPending,
     isSubmitting: submitMutation.isPending || (activeSubmission && activeSubmission.status !== 'completed'),
     activeSubmission,
     consoleMessages,

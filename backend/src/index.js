@@ -5,6 +5,7 @@ const pool = require('./config/db');
 const problemRoutes = require('./routes/problemRoutes');
 const userRoutes = require('./routes/userRoutes');
 const submissionRoutes = require('./routes/submissionRoutes');
+const runRoutes = require('./routes/runRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -19,6 +20,7 @@ app.get('/health', (req, res) => {
 app.use('/api/problems', problemRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/submissions', submissionRoutes);
+app.use('/api/run', runRoutes);
 
 async function startServer() {
     try {
