@@ -22,6 +22,9 @@ connection.on('error', (err) => {
     process.exit(1);
 });
 
+const { Emitter } = require('@socket.io/redis-emitter');
+const ioEmitter = new Emitter(connection);
+
 console.log("Starting Judge Worker...");
 
 const worker = new Worker('judge', async (job) => {
@@ -50,6 +53,28 @@ const worker = new Worker('judge', async (job) => {
         `, [verdict, executionTimeMs, submission_id]);
 
         console.log(`[Worker] Sub ${submission_id} completed | Verdict: ${verdict} | Time: ${executionTimeMs}ms`);
+
+        // 5. Broadcast to Socket Room if part of a contest
+        if (user_id) {
+            const roomId = await connection.get(`matchmaking:player:${user_id}`);
+            if (roomId) {
+                const roomStr = await connection.get(roomId);
+                if (roomStr) {
+                    const room = JSON.parse(roomStr);
+                    if (verdict === 'Accepted') {
+                        room.scores[user_id] = (room.scores[user_id] || 0) + 100;
+                    }
+                    await connection.set(roomId, JSON.stringify(room), 'EX', 86400);
+                    ioEmitter.to(roomId).emit('SCORE_UPDATED', {
+                        userId: user_id,
+                        problemId: problem_id,
+                        verdict,
+                        pointsAwarded: verdict === 'Accepted' ? 100 : 0,
+                        newTotalScore: room.scores[user_id]
+                    });
+                }
+            }
+        }
 
     } catch (error) {
         console.error(`[Worker] Failed to process submission ${submission_id}:`, error);

@@ -7,8 +7,12 @@ const submissionRoutes = require('./routes/submissionRoutes');
 const runRoutes = require('./routes/runRoutes');
 const authRoutes = require('./modules/auth/auth.routes');
 const userRoutes = require('./modules/users/user.routes');
+const matchmakingRoutes = require('./modules/matchmaking/matchmaking.routes');
+const { initializeSocket } = require('./socket');
+const http = require('http');
 
 const app = express();
+const server = http.createServer(app);
 const PORT = process.env.PORT || 5000;
 
 app.use(cors());
@@ -23,6 +27,10 @@ app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/submissions', submissionRoutes);
 app.use('/api/run', runRoutes);
+app.use('/api/matchmaking', matchmakingRoutes);
+
+// Initialize Socket.io
+initializeSocket(server);
 
 async function startServer() {
     try {
@@ -30,7 +38,7 @@ async function startServer() {
         const result = await pool.query('SELECT NOW();');
         console.log('PostgreSQL connected');
         
-        app.listen(PORT, () => {
+        server.listen(PORT, () => {
             console.log(`Server running on port ${PORT}`);
         });
     } catch (error) {
