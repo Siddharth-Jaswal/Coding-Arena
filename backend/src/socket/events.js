@@ -1,0 +1,24 @@
+module.exports = {
+    // Client -> Server
+    CLIENT_EVENTS: {
+        JOIN_QUEUE: 'JOIN_QUEUE',
+        LEAVE_QUEUE: 'LEAVE_QUEUE',
+        JOIN_ROOM: 'JOIN_ROOM',
+        READY: 'READY',
+        PING: 'PING'
+    },
+    // Server -> Client
+    SERVER_EVENTS: {
+        QUEUE_JOINED: 'QUEUE_JOINED',
+        QUEUE_LEFT: 'QUEUE_LEFT',
+        MATCH_FOUND: 'MATCH_FOUND',
+        ROOM_CREATED: 'ROOM_CREATED',
+        ROOM_JOINED: 'ROOM_JOINED',
+        COUNTDOWN_STARTED: 'COUNTDOWN_STARTED',
+        CONTEST_STARTED: 'CONTEST_STARTED',
+        PLAYER_SUBMITTED: 'PLAYER_SUBMITTED',
+        SCORE_UPDATED: 'SCORE_UPDATED',
+        MATCH_FINISHED: 'MATCH_FINISHED',
+        ERROR: 'ERROR'
+    }
+};
