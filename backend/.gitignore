@@ -4,3 +4,5 @@ exports/google_drive/*.zip
 /judge/cache/
 
 /judge/
+
+/src/generated/prisma
