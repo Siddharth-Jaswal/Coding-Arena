@@ -2,13 +2,10 @@ require('dotenv').config({ path: __dirname + '/../../.env' });
 const { Worker } = require('bullmq');
 const pool = require('../config/db');
 const judgeEngine = require('../judge/JudgeEngine');
+const config = require('../config');
 
 // Setup Redis connection config
-const redisUrl = process.env.REDIS_URL;
-if (!redisUrl) {
-    console.error("FATAL ERROR: REDIS_URL environment variable is missing.");
-    process.exit(1);
-}
+const redisUrl = config.redisUrl;
 
 const connection = new (require('ioredis'))(redisUrl, {
     maxRetriesPerRequest: null,
@@ -24,8 +21,6 @@ connection.on('error', (err) => {
 
 const { Emitter } = require('@socket.io/redis-emitter');
 const ioEmitter = new Emitter(connection);
-
-console.log("Starting Judge Worker...");
 
 const worker = new Worker('judge', async (job) => {
     const { submission_id, problem_id, language, user_id } = job.data;
@@ -92,9 +87,34 @@ const worker = new Worker('judge', async (job) => {
 }, { connection });
 
 worker.on('ready', () => {
-    console.log("✅ Judge Worker is connected and ready to process jobs.");
+    console.log("[WORKER] Redis Connected");
+    console.log("[WORKER] BullMQ Connected");
+    console.log("[WORKER] Listening for Jobs");
 });
 
 worker.on('error', (err) => {
     console.error("❌ Judge Worker encountered an error:", err);
 });
+
+async function gracefulShutdown() {
+    console.log('\n[WORKER] Initiating graceful shutdown...');
+    try {
+        console.log('[WORKER] 1. Closing BullMQ Worker (waiting for active jobs)');
+        await worker.close();
+
+        console.log('[WORKER] 2. Disconnecting Redis');
+        await connection.quit();
+
+        console.log('[WORKER] 3. Disconnecting Database');
+        await pool.end();
+
+        console.log('[WORKER] Shutdown complete.');
+        process.exit(0);
+    } catch (err) {
+        console.error('[WORKER] Error during shutdown:', err);
+        process.exit(1);
+    }
+}
+
+process.on('SIGTERM', gracefulShutdown);
+process.on('SIGINT', gracefulShutdown);

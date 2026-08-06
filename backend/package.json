@@ -5,8 +5,9 @@
   "main": "index.js",
   "scripts": {
     "start": "node src/index.js",
-    "dev": "node src/index.js",
+    "dev": "cross-env NODE_ENV=development node src/index.js",
     "worker": "node src/workers/submissionWorker.js",
+    "worker:dev": "cross-env NODE_ENV=development node src/workers/submissionWorker.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -24,6 +25,7 @@
     "bcrypt": "^6.0.0",
     "bullmq": "^5.81.2",
     "cors": "^2.8.6",
+    "cross-env": "^10.1.0",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "ioredis": "^6.0.0",

@@ -3,13 +3,12 @@ const { createAdapter } = require('@socket.io/redis-adapter');
 const { pubClient, subClient } = require('../redis/client');
 const { verifyToken } = require('../utils/jwt');
 const { registerHandlers } = require('./handlers');
-
-let io;
+const config = require('../config');
 
 const initializeSocket = (httpServer) => {
     io = new Server(httpServer, {
         cors: {
-            origin: '*',
+            origin: config.allowedOrigins,
             methods: ['GET', 'POST']
         }
     });

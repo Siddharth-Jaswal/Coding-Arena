@@ -1,6 +1,6 @@
-require('dotenv').config();
+const config = require('./index');
 
-const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
+const redisUrl = config.redisUrl;
 const url = new URL(redisUrl);
 
 const redisConfig = {

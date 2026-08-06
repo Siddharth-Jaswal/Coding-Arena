@@ -1,6 +1,7 @@
 const bcrypt = require('bcrypt');
+const config = require('../config');
 
-const BCRYPT_ROUNDS = parseInt(process.env.BCRYPT_ROUNDS || '10', 10);
+const BCRYPT_ROUNDS = config.bcryptRounds;
 
 /**
  * Hashes a plaintext password using bcrypt.

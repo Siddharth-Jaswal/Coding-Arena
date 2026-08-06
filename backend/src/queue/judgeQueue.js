@@ -1,7 +1,8 @@
 const { Queue } = require('bullmq');
 const IORedis = require('ioredis');
+const config = require('../config');
 
-const redisUrl = process.env.REDIS_URL;
+const redisUrl = config.redisUrl;
 
 if (!redisUrl) {
     console.error("FATAL ERROR: REDIS_URL environment variable is missing.");

@@ -1,6 +1,7 @@
 const { Pool } = require('pg');
+const config = require('./index');
 
-const connectionString = process.env.DATABASE_URL;
+const connectionString = config.databaseUrl;
 
 if (!connectionString) {
     console.error('FATAL: DATABASE_URL environment variable is not defined.');

@@ -1,6 +1,7 @@
 const Redis = require('ioredis');
+const config = require('../config');
 
-const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
+const redisUrl = config.redisUrl;
 
 // Singleton connections for ioredis
 // The adapter requires two separate connections: a publisher and a subscriber.
