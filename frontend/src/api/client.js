@@ -9,11 +9,10 @@ const apiClient = axios.create({
 
 apiClient.interceptors.request.use(
   (config) => {
-    // Future: attach JWT token here
-    // const token = localStorage.getItem('token');
-    // if (token) {
-    //   config.headers.Authorization = `Bearer ${token}`;
-    // }
+    const token = localStorage.getItem('arena_token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
     return config;
   },
   (error) => {
@@ -24,7 +23,11 @@ apiClient.interceptors.request.use(
 apiClient.interceptors.response.use(
   (response) => response.data,
   (error) => {
-    const customError = new Error(error.response?.data?.error || error.message || 'An unexpected error occurred');
+    if (error.response?.status === 401) {
+      window.dispatchEvent(new CustomEvent('auth:unauthorized'));
+    }
+    
+    const customError = new Error(error.response?.data?.message || error.response?.data?.error || error.message || 'An unexpected error occurred');
     customError.status = error.response?.status;
     return Promise.reject(customError);
   }

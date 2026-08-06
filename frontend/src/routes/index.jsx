@@ -9,10 +9,15 @@ import ProblemsPage from '../pages/ProblemsPage';
 import ProblemPage from '../pages/ProblemPage';
 
 import ArenaPage from '../pages/ArenaPage';
+import LoginPage from '../pages/LoginPage';
+import RegisterPage from '../pages/RegisterPage';
+import DashboardPage from '../pages/DashboardPage';
+import ProfilePage from '../pages/ProfilePage';
+
+import { ProtectedRoute } from '../components/auth/ProtectedRoute';
+import { PublicOnlyRoute } from '../components/auth/PublicOnlyRoute';
 
 // Placeholder Pages
-const ProfilePlaceholder = () => <div>Profile Placeholder</div>;
-const UserSubmissionsPlaceholder = () => <div>User Submissions Placeholder</div>;
 const SubmissionDetailsPlaceholder = () => <div>Submission Details Placeholder</div>;
 const NotFoundPlaceholder = () => <div>404 Not Found</div>;
 
@@ -21,7 +26,14 @@ export const router = createBrowserRouter([
     path: '/',
     element: <LandingLayout />,
     children: [
-      { index: true, element: <LandingPage /> },
+      { 
+        index: true, 
+        element: (
+          <PublicOnlyRoute>
+            <LandingPage />
+          </PublicOnlyRoute>
+        ) 
+      },
     ],
   },
   {
@@ -29,14 +41,55 @@ export const router = createBrowserRouter([
     children: [
       { path: 'problems', element: <ProblemsPage /> },
       { path: 'problems/:id', element: <ProblemPage /> },
-      { path: 'profile/:id', element: <ProfilePlaceholder /> },
-      { path: 'profile/:id/submissions', element: <UserSubmissionsPlaceholder /> },
+      
+      // Auth Routes
+      { 
+        path: 'login', 
+        element: (
+          <PublicOnlyRoute>
+            <LoginPage />
+          </PublicOnlyRoute>
+        ) 
+      },
+      { 
+        path: 'register', 
+        element: (
+          <PublicOnlyRoute>
+            <RegisterPage />
+          </PublicOnlyRoute>
+        ) 
+      },
+      
+      // Protected User Routes
+      { 
+        path: 'dashboard', 
+        element: (
+          <ProtectedRoute>
+            <DashboardPage />
+          </ProtectedRoute>
+        ) 
+      },
+      { 
+        path: 'profile', 
+        element: (
+          <ProtectedRoute>
+            <ProfilePage />
+          </ProtectedRoute>
+        ) 
+      },
     ],
   },
   {
     element: <ArenaLayout />,
     children: [
-      { path: 'problems/:id/solve', element: <ArenaPage /> },
+      { 
+        path: 'problems/:id/solve', 
+        element: (
+          <ProtectedRoute>
+            <ArenaPage />
+          </ProtectedRoute>
+        ) 
+      },
       { path: 'submissions/:id', element: <SubmissionDetailsPlaceholder /> },
     ],
   },
