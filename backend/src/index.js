@@ -3,9 +3,10 @@ const express = require('express');
 const cors = require('cors');
 const pool = require('./config/db');
 const problemRoutes = require('./routes/problemRoutes');
-const userRoutes = require('./routes/userRoutes');
 const submissionRoutes = require('./routes/submissionRoutes');
 const runRoutes = require('./routes/runRoutes');
+const authRoutes = require('./modules/auth/auth.routes');
+const userRoutes = require('./modules/users/user.routes');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -18,6 +19,7 @@ app.get('/health', (req, res) => {
 });
 
 app.use('/api/problems', problemRoutes);
+app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/submissions', submissionRoutes);
 app.use('/api/run', runRoutes);

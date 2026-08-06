@@ -3,13 +3,13 @@ const submissionService = require('../services/submissionService');
 class SubmissionController {
     async createSubmission(req, res) {
         try {
-            const { user_id, problem_id, language, source_code } = req.body;
+            const { problem_id, language, source_code } = req.body;
+            const user_id = req.user.id; // from auth middleware
 
             if (!problem_id || !language || !source_code) {
                 return res.status(400).json({ error: 'problem_id, language, and source_code are required' });
             }
 
-            // user_id is mocked from request body for now as per plan
             const submission = await submissionService.createSubmission(user_id, problem_id, language, source_code);
             return res.status(201).json(submission);
         } catch (error) {
