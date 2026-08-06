@@ -2,6 +2,7 @@ import React from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "../ui/Button";
 import { useAuth } from "@/contexts/AuthContext";
+import { Swords } from "lucide-react";
 
 export const Navbar = ({ variant = "landing" }) => {
   const { isAuthenticated, logout } = useAuth();
@@ -62,6 +63,14 @@ export const Navbar = ({ variant = "landing" }) => {
             </>
           ) : (
             <>
+              <Button
+                variant="outline"
+                className="hidden sm:flex border-primary/20 text-primary hover:bg-primary/10 shadow-[0_0_15px_rgba(var(--primary-rgb),0.15)] transition-all duration-300"
+                onClick={() => navigate('/matchmaking')}
+              >
+                <Swords className="w-4 h-4 mr-2" />
+                Find Match (Beta)
+              </Button>
               {variant === 'landing' ? (
                 <>
                   <Button variant="ghost" size="sm" className="hidden sm:inline-flex" asChild>
@@ -74,9 +83,6 @@ export const Navbar = ({ variant = "landing" }) => {
               ) : null}
               <Button variant="ghost" size="sm" onClick={handleLogout} className="hidden sm:inline-flex text-muted-foreground hover:text-destructive">
                 Logout
-              </Button>
-              <Button size="sm" disabled={variant === 'app'} title={variant === 'app' ? "Coming Soon" : ""}>
-                Find Match {variant === 'landing' && '(Beta)'}
               </Button>
             </>
           )}

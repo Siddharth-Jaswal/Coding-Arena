@@ -13,6 +13,7 @@ import LoginPage from '../pages/LoginPage';
 import RegisterPage from '../pages/RegisterPage';
 import DashboardPage from '../pages/DashboardPage';
 import ProfilePage from '../pages/ProfilePage';
+import MatchmakingPage from '../features/matchmaking/pages/MatchmakingPage';
 
 import { ProtectedRoute } from '../components/auth/ProtectedRoute';
 import { PublicOnlyRoute } from '../components/auth/PublicOnlyRoute';
@@ -74,6 +75,14 @@ export const router = createBrowserRouter([
         element: (
           <ProtectedRoute>
             <ProfilePage />
+          </ProtectedRoute>
+        ) 
+      },
+      { 
+        path: 'matchmaking', 
+        element: (
+          <ProtectedRoute>
+            <MatchmakingPage />
           </ProtectedRoute>
         ) 
       },
