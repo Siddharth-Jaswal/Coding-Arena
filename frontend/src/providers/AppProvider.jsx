@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useThemeStore } from '../store/useThemeStore';
 import { useEffect } from 'react';
+import { AuthProvider } from '../contexts/AuthContext';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -23,9 +24,10 @@ export const AppProvider = ({ children }) => {
 
   return (
     <QueryClientProvider client={queryClient}>
-      {/* Future: AuthProvider placeholder */}
-      {/* Future: ToastProvider placeholder */}
-      {children}
+      <AuthProvider>
+        {/* Future: ToastProvider placeholder */}
+        {children}
+      </AuthProvider>
     </QueryClientProvider>
   );
 };
