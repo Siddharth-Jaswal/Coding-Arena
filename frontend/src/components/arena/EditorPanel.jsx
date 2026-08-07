@@ -20,26 +20,10 @@ int main() {
 }
 `;
 
-export const EditorPanel = ({ problemId, language, onRun, onSubmit, className }) => {
+export const EditorPanel = ({ problemId, language, value, onChange, onRun, onSubmit, readOnly = false, className }) => {
   const monaco = useMonaco();
   const editorRef = useRef(null);
-  const [code, setCode] = useState('');
   const [saveStatus, setSaveStatus] = useState('saved');
-
-  // Handle LocalStorage Persistence
-  useEffect(() => {
-    if (!problemId) return;
-    const cacheKey = `arena_code_${problemId}_${language}`;
-    const cachedCode = localStorage.getItem(cacheKey);
-    
-    if (cachedCode) {
-      setCode(cachedCode);
-    } else {
-      // Initialize with default template if C++
-      const defaultCode = language === 'cpp' ? DEFAULT_CPP_TEMPLATE : '// Write your code here';
-      setCode(defaultCode);
-    }
-  }, [problemId, language]);
 
   // Handle Monaco Theme Injection to match existing Design System
   useEffect(() => {
@@ -78,8 +62,8 @@ export const EditorPanel = ({ problemId, language, onRun, onSubmit, className })
     });
   };
 
-  const handleEditorChange = (value) => {
-    setCode(value);
+  const handleEditorChange = (newValue) => {
+    onChange?.(newValue);
     setSaveStatus('unsaved');
   };
 
@@ -89,13 +73,14 @@ export const EditorPanel = ({ problemId, language, onRun, onSubmit, className })
 
     setSaveStatus('saving');
     const timer = setTimeout(() => {
-      const cacheKey = `arena_code_${problemId}_${language}`;
-      localStorage.setItem(cacheKey, code);
+      // We don't need to manually update local storage here, because WorkspaceContext handles it.
+      // But if we want to show saving status accurately based on Editor state, we can keep the effect
+      // and maybe just rely on WorkspaceContext.
       setSaveStatus('saved');
     }, 1000);
 
     return () => clearTimeout(timer);
-  }, [code, problemId, language, saveStatus]);
+  }, [value, problemId, language, saveStatus]);
 
   return (
     <div className={className}>
@@ -108,7 +93,7 @@ export const EditorPanel = ({ problemId, language, onRun, onSubmit, className })
           height="100%"
           language={language}
           theme="arena-dark"
-          value={code}
+          value={value}
           onChange={handleEditorChange}
           onMount={handleEditorDidMount}
           options={{
@@ -121,6 +106,7 @@ export const EditorPanel = ({ problemId, language, onRun, onSubmit, className })
             cursorBlinking: 'smooth',
             cursorSmoothCaretAnimation: true,
             formatOnPaste: true,
+            readOnly: readOnly,
           }}
         />
       </div>

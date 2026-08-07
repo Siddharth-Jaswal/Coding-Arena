@@ -2,7 +2,36 @@ import React from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "../ui/Button";
 import { useAuth } from "@/contexts/AuthContext";
-import { Swords } from "lucide-react";
+import { useSocket } from "@/contexts/SocketContext";
+import { SOCKET_STATUS } from "@/socket/events";
+import { Swords, Wifi, WifiOff, Loader2 } from "lucide-react";
+
+const ConnectionIndicator = () => {
+  const { status } = useSocket();
+  
+  if (status === SOCKET_STATUS.CONNECTED) {
+    return (
+      <div className="flex items-center gap-1.5 text-xs font-medium text-emerald-500 px-2 py-1 bg-emerald-500/10 rounded-full" title="Connected to Server">
+        <Wifi className="w-3.5 h-3.5" />
+        <span className="hidden sm:inline">Connected</span>
+      </div>
+    );
+  }
+  if (status === SOCKET_STATUS.RECONNECTING || status === SOCKET_STATUS.CONNECTING) {
+    return (
+      <div className="flex items-center gap-1.5 text-xs font-medium text-yellow-500 px-2 py-1 bg-yellow-500/10 rounded-full" title="Connecting...">
+        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+        <span className="hidden sm:inline">Connecting</span>
+      </div>
+    );
+  }
+  return (
+    <div className="flex items-center gap-1.5 text-xs font-medium text-destructive px-2 py-1 bg-destructive/10 rounded-full" title="Offline">
+      <WifiOff className="w-3.5 h-3.5" />
+      <span className="hidden sm:inline">Offline</span>
+    </div>
+  );
+};
 
 export const Navbar = ({ variant = "landing" }) => {
   const { isAuthenticated, logout } = useAuth();
@@ -63,6 +92,7 @@ export const Navbar = ({ variant = "landing" }) => {
             </>
           ) : (
             <>
+              <ConnectionIndicator />
               <Button
                 variant="outline"
                 className="hidden sm:flex border-primary/20 text-primary hover:bg-primary/10 shadow-[0_0_15px_rgba(var(--primary-rgb),0.15)] transition-all duration-300"

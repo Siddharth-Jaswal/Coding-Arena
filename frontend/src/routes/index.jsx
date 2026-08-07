@@ -9,6 +9,7 @@ import ProblemsPage from '../pages/ProblemsPage';
 import ProblemPage from '../pages/ProblemPage';
 
 import ArenaPage from '../pages/ArenaPage';
+import ContestPage from '../features/contest/pages/ContestPage';
 import LoginPage from '../pages/LoginPage';
 import RegisterPage from '../pages/RegisterPage';
 import DashboardPage from '../pages/DashboardPage';
@@ -98,6 +99,14 @@ export const router = createBrowserRouter([
             <ArenaPage />
           </ProtectedRoute>
         ) 
+      },
+      {
+        path: 'contest/:roomId',
+        element: (
+          <ProtectedRoute>
+            <ContestPage />
+          </ProtectedRoute>
+        )
       },
       { path: 'submissions/:id', element: <SubmissionDetailsPlaceholder /> },
     ],

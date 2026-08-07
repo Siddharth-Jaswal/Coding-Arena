@@ -2,6 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useThemeStore } from '../store/useThemeStore';
 import { useEffect } from 'react';
 import { AuthProvider } from '../contexts/AuthContext';
+import { SocketProvider } from '../contexts/SocketContext';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -25,8 +26,10 @@ export const AppProvider = ({ children }) => {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        {/* Future: ToastProvider placeholder */}
-        {children}
+        <SocketProvider>
+          {/* Future: ToastProvider placeholder */}
+          {children}
+        </SocketProvider>
       </AuthProvider>
     </QueryClientProvider>
   );

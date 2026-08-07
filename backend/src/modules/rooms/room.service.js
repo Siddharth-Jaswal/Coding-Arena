@@ -75,7 +75,12 @@ class RoomService {
 
     async handlePlayerJoinRoom(socket, roomId) {
         socket.join(roomId);
-        socket.emit(SERVER_EVENTS.ROOM_JOINED, { roomId });
+        const roomData = await redisClient.get(roomId);
+        let room = null;
+        if (roomData) {
+            room = JSON.parse(roomData);
+        }
+        socket.emit(SERVER_EVENTS.ROOM_JOINED, { roomId, room });
     }
 
     async handlePlayerReady(io, socket, roomId) {

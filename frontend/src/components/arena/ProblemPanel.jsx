@@ -63,8 +63,8 @@ export const ProblemPanel = ({ problem, isLoading }) => {
                 <div key={test.id || idx} className="space-y-2">
                   <h3 className="text-sm font-medium text-foreground/60">Sample {idx + 1}</h3>
                   <SampleTestCard 
-                    input={test.input_data} 
-                    output={test.expected_output} 
+                    input={test.input || test.input_data} 
+                    output={test.output || test.expected_output} 
                   />
                 </div>
               ))}

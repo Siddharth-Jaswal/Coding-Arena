@@ -1,4 +1,3 @@
-// This is an architectural placeholder for the Socket.IO event mappings.
 // These map directly to the backend socket events defined in backend/src/socket/events.js
 
 export const CLIENT_EVENTS = {
@@ -20,5 +19,15 @@ export const SERVER_EVENTS = {
     PLAYER_SUBMITTED: 'PLAYER_SUBMITTED',
     SCORE_UPDATED: 'SCORE_UPDATED',
     MATCH_FINISHED: 'MATCH_FINISHED',
+    PLAYER_DISCONNECTED: 'PLAYER_DISCONNECTED',
+    PLAYER_RECONNECTED: 'PLAYER_RECONNECTED',
     ERROR: 'ERROR'
+};
+
+export const SOCKET_STATUS = {
+    CONNECTING: 'connecting',
+    CONNECTED: 'connected',
+    RECONNECTING: 'reconnecting',
+    DISCONNECTED: 'disconnected',
+    AUTH_FAILED: 'auth_failed',
 };

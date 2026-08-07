@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { PageWrapper, Container, Section, GridLayout } from '@/components/layout';
 import { GridOverlay } from '@/components/ui/Backgrounds';
 import { useMatchmakingStore } from '../store/useMatchmakingStore';
+import { useMatchmakingSocket } from '../hooks/useMatchmakingSocket';
 import { GAME_MODES, MATCHMAKING_STATES } from '../constants/matchmaking.constants';
 
 // Components
@@ -15,9 +16,12 @@ import { QueueStatistics } from '../components/QueueStatistics';
 import { ServerStatusCard } from '../components/ServerStatusCard';
 import { RecentMatchesCard } from '../components/RecentMatchesCard';
 import { FutureFeaturesGrid } from '../components/FutureFeaturesGrid';
+import { MatchFoundOverlay } from '../components/MatchFoundOverlay';
 
 const MatchmakingPage = () => {
-  const { status, elapsedTime, estimatedTime, onFindMatch, onCancel } = useMatchmakingStore();
+  const { status, elapsedTime, estimatedTime, error } = useMatchmakingStore();
+  const { findMatch, cancelSearch } = useMatchmakingSocket();
+  
   const [selectedMode, setSelectedMode] = useState('ranked');
 
   // Prevent modifying mode while queued/searching
@@ -25,6 +29,7 @@ const MatchmakingPage = () => {
 
   return (
     <PageWrapper>
+      <MatchFoundOverlay />
       <div className="fixed inset-0 z-0 pointer-events-none">
         <GridOverlay />
       </div>
@@ -51,8 +56,8 @@ const MatchmakingPage = () => {
                 status={status} 
                 elapsedTime={elapsedTime} 
                 estimatedTime={estimatedTime}
-                onFindMatch={onFindMatch}
-                onCancel={onCancel}
+                onFindMatch={findMatch}
+                onCancel={cancelSearch}
               />
               
               {/* Game Modes */}

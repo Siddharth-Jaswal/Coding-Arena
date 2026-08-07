@@ -1,8 +1,18 @@
 import React, { useState } from 'react';
 import { cn } from '@/lib/utils';
 
-export const BottomPanel = ({ tabs = [], defaultTab = 0, className }) => {
-  const [activeTab, setActiveTab] = useState(defaultTab);
+export const BottomPanel = ({ tabs = [], defaultTab = 0, className, activeTab: externalActiveTab, onTabChange }) => {
+  const [internalActiveTab, setInternalActiveTab] = useState(defaultTab);
+  
+  const activeTab = externalActiveTab !== undefined ? externalActiveTab : internalActiveTab;
+  
+  const handleTabChange = (idx) => {
+    if (onTabChange) {
+      onTabChange(idx);
+    } else {
+      setInternalActiveTab(idx);
+    }
+  };
 
   return (
     <div className={cn("flex flex-col h-full bg-[#0a0a0a] border-t border-border/40", className)}>
@@ -13,7 +23,7 @@ export const BottomPanel = ({ tabs = [], defaultTab = 0, className }) => {
           return (
             <button
               key={idx}
-              onClick={() => setActiveTab(idx)}
+              onClick={() => handleTabChange(idx)}
               className={cn(
                 "px-4 py-2 text-xs font-medium transition-colors border-b-2 whitespace-nowrap",
                 isActive 

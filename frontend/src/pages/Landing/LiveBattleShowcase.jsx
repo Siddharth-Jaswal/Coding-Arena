@@ -114,6 +114,8 @@ export const LiveBattleShowcase = () => {
           </div>
           
           <SplitPane 
+            direction="horizontal"
+            defaultSize={500}
             leftPane={player1Panel}
             rightPane={player2Panel}
             className="p-2"
