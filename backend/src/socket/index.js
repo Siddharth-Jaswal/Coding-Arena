@@ -3,6 +3,7 @@ const { createAdapter } = require('@socket.io/redis-adapter');
 const { pubClient, subClient } = require('../redis/client');
 const { verifyToken } = require('../utils/jwt');
 const { registerHandlers } = require('./handlers');
+const roomService = require('../modules/rooms/room.service');
 const config = require('../config');
 
 const initializeSocket = (httpServer) => {
@@ -41,9 +42,16 @@ const initializeSocket = (httpServer) => {
         }
     });
 
-    io.on('connection', (socket) => {
+    io.on('connection', async (socket) => {
         console.log(`Socket connected: ${socket.id} (User: ${socket.user.username})`);
         
+        // Check if user is already in a match and silently rejoin them
+        try {
+            await roomService.handleReconnect(io, socket, socket.user.id);
+        } catch (err) {
+            console.error('Error handling reconnect:', err);
+        }
+
         // Register all socket handlers
         registerHandlers(io, socket);
     });

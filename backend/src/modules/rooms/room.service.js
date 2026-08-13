@@ -151,6 +151,23 @@ class RoomService {
         }
     }
 
+    async handleReconnect(io, socket, userId) {
+        const roomId = await redisClient.get(`matchmaking:player:${userId}`);
+        if (!roomId) return; // Not in a room
+
+        const roomData = await redisClient.get(roomId);
+        if (!roomData) return;
+
+        const room = JSON.parse(roomData);
+        if (room.players[userId]) {
+            room.players[userId].disconnected = false;
+            await redisClient.set(roomId, JSON.stringify(room), 'EX', 86400);
+            
+            // Forcefully rejoin the socket to the room so it receives SCORE_UPDATED events
+            socket.join(roomId);
+        }
+    }
+
     async handleDisconnect(io, userId) {
         const roomId = await redisClient.get(`matchmaking:player:${userId}`);
         if (!roomId) return; // Not in a room
