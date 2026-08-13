@@ -1,11 +1,32 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { submissionApi } from '@/api/submissions';
 
 export const useSubmission = (problemId, language) => {
-  const [activeSubmission, setActiveSubmission] = useState(null);
-  const [consoleMessages, setConsoleMessages] = useState('');
-  
+  const [submissionsByProblem, setSubmissionsByProblem] = useState({});
+  const [consolesByProblem, setConsolesByProblem] = useState({});
+
+  const activeSubmission = submissionsByProblem[problemId] || null;
+  const consoleMessages = consolesByProblem[problemId] || '';
+
+  const setActiveSubmission = (updateFnOrValue) => {
+    if (!problemId) return;
+    setSubmissionsByProblem(prev => {
+      const current = prev[problemId] || null;
+      const newValue = typeof updateFnOrValue === 'function' ? updateFnOrValue(current) : updateFnOrValue;
+      return { ...prev, [problemId]: newValue };
+    });
+  };
+
+  const setConsoleMessages = (updateFnOrValue) => {
+    if (!problemId) return;
+    setConsolesByProblem(prev => {
+      const current = prev[problemId] || '';
+      const newValue = typeof updateFnOrValue === 'function' ? updateFnOrValue(current) : updateFnOrValue;
+      return { ...prev, [problemId]: newValue };
+    });
+  };
+
   const getTimestamp = () => {
     const now = new Date();
     return `[${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}]`;
@@ -84,13 +105,6 @@ export const useSubmission = (problemId, language) => {
       refetch();
     }
   };
-
-  // Clean up when unmounting
-  useEffect(() => {
-    return () => {
-      setActiveSubmission(null);
-    };
-  }, []);
 
   const runCodeMutation = useMutation({
     mutationFn: (source_code) => {

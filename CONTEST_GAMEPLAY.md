@@ -55,9 +55,59 @@ When `SCORE_UPDATED` is received:
 The `useSubmission.js` hook manages REST API polling independently of the Socket.IO score updates. A successful submission does not guarantee a score update (e.g. if the problem was already solved). 
 
 1. **Submission Initiated**: `WorkspaceContext` intercepts the `onSubmit` or `onRun` action and aggressively switches the `BottomPanel` to the Console (0) or Submission (2) tab.
+
+---
+
+## Reliability & Recovery
+
+### 1. Per-Problem State Isolation
+All coding, console, and submission state is inherently isolated per problem. 
+- Switching from Problem A to Problem B instantly swaps out the active source code, submission polling status, and console output.
+- Switching back fully restores Problem A's exact layout, code, and submission state. Submissions made on Problem A never leak into Problem B's workspace.
+
+### 2. Contest Termination Authority
+The timer rendered on the frontend is purely a visual countdown based on the `endsAt` timestamp. When the timer hits `00:00`, the frontend does **not** autonomously end the match. It waits for the authoritative `MATCH_FINISHED` event from the backend. This guarantees that differences in client-side clocks never result in a locally closed workspace while the backend is still accepting submissions.
+
+### 3. Opponent Connection State
+Opponent disconnect warnings are driven purely by dedicated `PLAYER_DISCONNECTED` and `PLAYER_RECONNECTED` events broadcast by the backend. If the local player's socket temporarily disconnects, the UI displays local reconnecting states without falsely marking the opponent as disconnected.
+
+### 4. Socket Reconnection & Reload Recovery
+If a user refreshes their browser during an active contest:
+1. **Authentication**: The JWT is restored and used to establish a new authenticated Socket.IO connection.
+2. **Re-associating**: Once connected, the frontend reads the `roomId` from the URL and emits a single `JOIN_ROOM` event.
+3. **Hydration**: The backend retrieves the authoritative contest state from Redis and responds with a `ROOM_JOINED` payload. The frontend intercepts this payload, extracts the `room` object, and hydrates `MatchContext` (including scores, opponent status, and active problems).
+4. **Cleanup**: Socket listeners dynamically unregister and re-register upon state transitions or reconnects to guarantee no duplicate event execution occurs.
 2. **Queued**: The backend returns a job ID.
 3. **Running**: The frontend polls and detects `status === 'running'`. Console messages are appended.
 4. **Completed**: The backend worker evaluates the code, updates the DB, and emits `SCORE_UPDATED` via Redis Emitter if applicable. The frontend poll completes simultaneously.
+
+---
+
+## Reliability & Recovery
+
+### State Separation
+The contest architecture strictly separates presentation state from game state:
+- **MatchContext**: Owns the multiplayer state (`room`, `players`, `opponent`, `status`, `scores`, `endsAt`). This context treats the backend Socket.IO events as the ultimate source of truth.
+- **WorkspaceContext**: Owns the isolated problem state (`source code`, `console output`, `active tab`, `cursor position`).
+- **useSubmission**: Owns the execution lifecycle (`active submission`, `polling status`), which is strictly keyed per `problemId`.
+
+### 1. Per-Problem State Isolation
+All coding, console, and submission state is inherently isolated per problem. 
+- Switching from Problem A to Problem B instantly swaps out the active source code, submission polling status, and console output.
+- Switching back fully restores Problem A's exact layout, code, and submission state. Submissions made on Problem A never leak into Problem B's workspace.
+
+### 2. Contest Termination Authority
+The timer rendered on the frontend is purely a visual countdown based on the `endsAt` timestamp. When the timer hits `00:00`, the frontend does **not** autonomously end the match. It waits for the authoritative `MATCH_FINISHED` event from the backend. This guarantees that differences in client-side clocks never result in a locally closed workspace while the backend is still accepting submissions.
+
+### 3. Opponent Connection State
+Opponent disconnect warnings are driven purely by dedicated `PLAYER_DISCONNECTED` and `PLAYER_RECONNECTED` events broadcast by the backend. If the local player's socket temporarily disconnects, the UI displays local reconnecting states without falsely marking the opponent as disconnected.
+
+### 4. Socket Reconnection & Reload Recovery
+If a user refreshes their browser during an active contest:
+1. **Authentication**: The JWT is restored and used to establish a new authenticated Socket.IO connection.
+2. **Re-associating**: Once connected, the frontend reads the `roomId` from the URL and emits a single `JOIN_ROOM` event.
+3. **Hydration**: The backend retrieves the authoritative contest state from Redis and responds with a `ROOM_JOINED` payload. The frontend intercepts this payload, extracts the `room` object, and hydrates `MatchContext` (including scores, opponent status, and active problems).
+4. **Cleanup**: Socket listeners dynamically unregister and re-register upon state transitions or reconnects to guarantee no duplicate event execution occurs.
 
 ## Architecture Preservation
 `ArenaWorkspace` remains entirely multiplayer-agnostic. It does not know about Socket.IO, rooms, countdowns, or opponents. 

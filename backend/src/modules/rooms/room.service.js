@@ -165,6 +165,9 @@ class RoomService {
             
             // Forcefully rejoin the socket to the room so it receives SCORE_UPDATED events
             socket.join(roomId);
+            
+            // Broadcast reconnect event
+            io.to(roomId).emit(SERVER_EVENTS.PLAYER_RECONNECTED, { userId });
         }
     }
 
@@ -179,7 +182,9 @@ class RoomService {
         if (room.players[userId]) {
             room.players[userId].disconnected = true;
             await redisClient.set(roomId, JSON.stringify(room), 'EX', 86400);
-            // Optionally broadcast to the other player that opponent disconnected
+            
+            // Broadcast disconnect event
+            io.to(roomId).emit(SERVER_EVENTS.PLAYER_DISCONNECTED, { userId });
         }
     }
 }

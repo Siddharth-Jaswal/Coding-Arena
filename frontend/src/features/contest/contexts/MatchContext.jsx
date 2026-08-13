@@ -30,11 +30,15 @@ export const MatchProvider = ({ children, roomId }) => {
   const [attemptedProblemIds, setAttemptedProblemIds] = useState([]);
   const [winnerId, setWinnerId] = useState(null);
 
+  // Emit JOIN_ROOM when socket connects
+  useEffect(() => {
+    if (!socket || !isConnected || !roomId) return;
+    socket.emit(CLIENT_EVENTS.JOIN_ROOM, { roomId });
+  }, [socket, isConnected, roomId]);
+
+  // Handle Socket Listeners
   useEffect(() => {
     if (!socket || !isConnected) return;
-
-    // Join room on mount
-    socket.emit(CLIENT_EVENTS.JOIN_ROOM, { roomId });
 
     const handleRoomJoined = (payload) => {
       // Hydrate state if we loaded directly into the room
@@ -50,7 +54,11 @@ export const MatchProvider = ({ children, roomId }) => {
           const pIds = Object.keys(payload.room.players);
           const oppId = pIds.find(id => id !== user.id.toString());
           if (oppId) {
-            setOpponent({ id: oppId, ...payload.room.players[oppId] });
+            setOpponent({ 
+              id: oppId, 
+              ...payload.room.players[oppId],
+              disconnected: payload.room.players[oppId].disconnected || false
+            });
           }
         }
         
@@ -152,7 +160,7 @@ export const MatchProvider = ({ children, roomId }) => {
       socket.off(SERVER_EVENTS.PLAYER_DISCONNECTED, handlePlayerDisconnected);
       socket.off(SERVER_EVENTS.PLAYER_RECONNECTED, handlePlayerReconnected);
     };
-  }, [socket, isConnected, roomId, opponent?.id, user?.id]);
+  }, [socket, isConnected, roomId, opponent?.id, opponent?.username, user?.id, activeProblemId]);
 
   const value = {
     roomId,
