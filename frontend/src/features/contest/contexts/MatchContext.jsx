@@ -61,6 +61,12 @@ export const MatchProvider = ({ children, roomId }) => {
               disconnected: payload.room.players[oppId].disconnected || false
             });
           }
+
+          // Hydrate solved problems from room state
+          if (payload.room.solved && payload.room.solved[user.id]) {
+            const solvedIds = Object.keys(payload.room.solved[user.id]);
+            setSolvedProblemIds(solvedIds);
+          }
         }
         
         // Set active problem if missing
@@ -102,13 +108,19 @@ export const MatchProvider = ({ children, roomId }) => {
       const actor = isMe ? 'me' : 'opponent';
       const actorName = isMe ? 'You' : (opponent?.username || 'Opponent');
 
+      const pId = String(payload.problemId);
+
       if (payload.verdict === 'Accepted') {
         if (isMe) {
-          setSolvedProblemIds(prev => [...new Set([...prev, payload.problemId])]);
+          setSolvedProblemIds(prev => [...new Set([...prev, pId])]);
+          setAttemptedProblemIds(prev => prev.filter(id => id !== pId));
         }
       } else {
         if (isMe) {
-          setAttemptedProblemIds(prev => [...new Set([...prev, payload.problemId])]);
+          setAttemptedProblemIds(prev => {
+            if (solvedProblemIds.includes(pId)) return prev;
+            return [...new Set([...prev, pId])];
+          });
         }
       }
 
