@@ -4,7 +4,7 @@ import { Trophy, Clock, XCircle, Code2, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { useNavigate } from 'react-router-dom';
 
-export const MatchResultModal = ({ room, opponent, user, scores = {}, winnerId }) => {
+export const MatchResultModal = ({ room, opponent, user, scores = {}, winnerId, matchResult }) => {
   const navigate = useNavigate();
   
   if (!room) return null;
@@ -68,10 +68,25 @@ export const MatchResultModal = ({ room, opponent, user, scores = {}, winnerId }
           <div className="flex flex-col items-center">
             <span className="text-sm font-medium text-muted-foreground mb-2">You</span>
             <span className="text-5xl font-mono font-bold text-foreground">{currentScore}</span>
+            {matchResult?.ratings?.[user?.id] && (
+               <div className="mt-3 flex items-center gap-2 text-sm">
+                 <span className="text-muted-foreground">{matchResult.ratings[user.id].old}</span>
+                 <ArrowRight size={14} className="text-muted-foreground/50" />
+                 <span className="font-bold">{matchResult.ratings[user.id].new}</span>
+                 <span className={`font-mono text-xs px-1.5 py-0.5 rounded ${matchResult.ratings[user.id].diff >= 0 ? 'bg-emerald-500/20 text-emerald-400' : 'bg-rose-500/20 text-rose-400'}`}>
+                   {matchResult.ratings[user.id].diff > 0 ? '+' : ''}{matchResult.ratings[user.id].diff}
+                 </span>
+               </div>
+            )}
           </div>
           
-          <div className="text-sm font-black text-muted-foreground/30 px-4 py-2 bg-black/40 rounded-lg">
-            VS
+          <div className="flex flex-col items-center gap-2">
+            <div className="text-sm font-black text-muted-foreground/30 px-4 py-2 bg-black/40 rounded-lg">
+              VS
+            </div>
+            {matchResult?.reason === 'TIME_EXPIRED' && (
+              <span className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Timeout</span>
+            )}
           </div>
           
           <div className="flex flex-col items-center">
@@ -79,6 +94,16 @@ export const MatchResultModal = ({ room, opponent, user, scores = {}, winnerId }
               {opponent?.username || 'Opponent'}
             </span>
             <span className="text-5xl font-mono font-bold text-foreground">{opponentScore}</span>
+            {matchResult?.ratings?.[opponent?.id] && (
+               <div className="mt-3 flex items-center gap-2 text-sm">
+                 <span className="text-muted-foreground">{matchResult.ratings[opponent.id].old}</span>
+                 <ArrowRight size={14} className="text-muted-foreground/50" />
+                 <span className="font-bold">{matchResult.ratings[opponent.id].new}</span>
+                 <span className={`font-mono text-xs px-1.5 py-0.5 rounded ${matchResult.ratings[opponent.id].diff >= 0 ? 'bg-emerald-500/20 text-emerald-400' : 'bg-rose-500/20 text-rose-400'}`}>
+                   {matchResult.ratings[opponent.id].diff > 0 ? '+' : ''}{matchResult.ratings[opponent.id].diff}
+                 </span>
+               </div>
+            )}
           </div>
         </div>
 

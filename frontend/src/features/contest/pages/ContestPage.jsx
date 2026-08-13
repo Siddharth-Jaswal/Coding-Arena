@@ -31,7 +31,8 @@ const ContestRoom = () => {
     countdownSeconds,
     solvedProblemIds,
     attemptedProblemIds,
-    winnerId
+    winnerId,
+    matchResult
   } = useMatchContext();
 
   // Navigation Guard
@@ -142,6 +143,7 @@ const ContestRoom = () => {
           user={user}
           scores={scores}
           winnerId={winnerId}
+          matchResult={matchResult}
         />
       )}
 

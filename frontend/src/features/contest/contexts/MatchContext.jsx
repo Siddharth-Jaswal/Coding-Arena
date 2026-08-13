@@ -19,6 +19,7 @@ export const MatchProvider = ({ children, roomId }) => {
   const [status, setStatus] = useState(storeMetadata?.status || 'waiting');
   const [scores, setScores] = useState(storeMetadata?.scores || {});
   const [events, setEvents] = useState([]);
+  const [matchResult, setMatchResult] = useState(null);
   const [endsAt, setEndsAt] = useState(storeMetadata?.endsAt || null);
   const [activeProblemId, setActiveProblemId] = useState(
     storeMetadata?.problems?.[0]?.id || null
@@ -122,6 +123,13 @@ export const MatchProvider = ({ children, roomId }) => {
     const handleMatchFinished = (payload) => {
       setStatus('finished');
       setWinnerId(payload.winnerId);
+      setMatchResult(payload);
+      
+      // Override local scores with final scores from backend
+      if (payload.finalScores) {
+          setScores(payload.finalScores);
+      }
+      
       setEvents(prev => [...prev, {
         type: 'system',
         message: `Match finished. ${payload.winnerId === user?.id ? 'You won!' : payload.winnerId ? 'You lost.' : 'Draw.'}`,
@@ -175,7 +183,8 @@ export const MatchProvider = ({ children, roomId }) => {
     countdownSeconds,
     solvedProblemIds,
     attemptedProblemIds,
-    winnerId
+    winnerId,
+    matchResult
   };
 
   return (
