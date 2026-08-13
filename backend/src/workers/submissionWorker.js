@@ -33,17 +33,15 @@ local points = tonumber(ARGV[3])
 if not room.solved then room.solved = {} end
 if not room.solved[userId] then room.solved[userId] = {} end
 
+-- Use dictionary for O(1) lookup and to avoid array/object serialization ambiguities with cjson
 local alreadySolved = false
-for i, pid in ipairs(room.solved[userId]) do
-    if tostring(pid) == problemId then
-        alreadySolved = true
-        break
-    end
+if room.solved[userId][problemId] == true then
+    alreadySolved = true
 end
 
 local awarded = 0
 if not alreadySolved and points > 0 then
-    table.insert(room.solved[userId], problemId)
+    room.solved[userId][problemId] = true
     room.scores[userId] = (room.scores[userId] or 0) + points
     awarded = points
     redis.call("SET", KEYS[1], cjson.encode(room), "EX", 86400)
