@@ -8,7 +8,7 @@ class MatchmakingService {
     /**
      * Joins the matchmaking queue.
      */
-    async joinQueue(userId, socketId, rating) {
+    async joinQueue(userId, socketId, rating, attemptId) {
         // Prevent duplicate joins
         const isQueued = await redisClient.sismember(QUEUED_USERS_SET, userId);
         if (isQueued) {
@@ -24,7 +24,8 @@ class MatchmakingService {
         multi.set(`matchmaking:player:${userId}`, JSON.stringify({
             socketId,
             joinedAt: new Date().toISOString(),
-            rating
+            rating,
+            attemptId
         }), 'EX', 3600); // expire in 1 hour if stuck
 
         await multi.exec();
@@ -85,8 +86,8 @@ class MatchmakingService {
             await roomService.createRoom(io, { id: player1Id, ...p1Meta }, { id: player2Id, ...p2Meta });
         } catch (error) {
             console.error('Matchmaking room creation failed, re-queueing players:', error);
-            await this.joinQueue(player1Id, p1Meta.socketId, p1Meta.rating);
-            await this.joinQueue(player2Id, p2Meta.socketId, p2Meta.rating);
+            await this.joinQueue(player1Id, p1Meta.socketId, p1Meta.rating, p1Meta.attemptId);
+            await this.joinQueue(player2Id, p2Meta.socketId, p2Meta.rating, p2Meta.attemptId);
         }
     }
 

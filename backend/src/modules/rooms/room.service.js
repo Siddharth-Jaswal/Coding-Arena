@@ -54,9 +54,9 @@ class RoomService {
 
         // Save to Redis
         const multi = redisClient.multi();
-        multi.set(roomId, JSON.stringify(roomState), 'EX', 86400); // 24 hr expire
-        multi.set(`matchmaking:player:${player1.id}`, roomId, 'EX', 86400);
-        multi.set(`matchmaking:player:${player2.id}`, roomId, 'EX', 86400);
+        multi.set(roomId, JSON.stringify(roomState), 'EX', 10800); // 3 hr expire
+        multi.set(`matchmaking:player:${player1.id}`, roomId, 'EX', 10800);
+        multi.set(`matchmaking:player:${player2.id}`, roomId, 'EX', 10800);
         await multi.exec();
 
         // Broadcast MATCH_FOUND and ROOM_CREATED to the specific sockets
@@ -71,17 +71,19 @@ class RoomService {
         if (player1.socketId) {
             io.to(player1.socketId).emit(SERVER_EVENTS.MATCH_FOUND, {
                 roomId,
+                attemptId: player1.attemptId,
                 opponent: { id: player2.id, username: player2.username || 'Player 2', rating: player2.rating }
             });
-            io.to(player1.socketId).emit(SERVER_EVENTS.ROOM_CREATED, roomPayload);
+            io.to(player1.socketId).emit(SERVER_EVENTS.ROOM_CREATED, { ...roomPayload, attemptId: player1.attemptId });
         }
 
         if (player2.socketId) {
             io.to(player2.socketId).emit(SERVER_EVENTS.MATCH_FOUND, {
                 roomId,
+                attemptId: player2.attemptId,
                 opponent: { id: player1.id, username: player1.username || 'Player 1', rating: player1.rating }
             });
-            io.to(player2.socketId).emit(SERVER_EVENTS.ROOM_CREATED, roomPayload);
+            io.to(player2.socketId).emit(SERVER_EVENTS.ROOM_CREATED, { ...roomPayload, attemptId: player2.attemptId });
         }
     }
 
@@ -92,7 +94,39 @@ class RoomService {
         if (roomData) {
             room = JSON.parse(roomData);
         }
+
         socket.emit(SERVER_EVENTS.ROOM_JOINED, { roomId, room });
+
+        // If the room is finished or not in Redis (expired), try to send historical result
+        if (!room || room.status === 'finished') {
+            const prisma = require('../../config/prisma');
+            const match = await prisma.match.findUnique({ where: { roomId } });
+            if (match) {
+                const finalResult = {
+                    roomId,
+                    winnerId: match.winnerId,
+                    loserId: match.loserId,
+                    reason: match.finishReason,
+                    result: match.winnerId === null ? 'DRAW' : 'WIN',
+                    finalScores: {
+                        [match.player1Id]: match.p1Score,
+                        [match.player2Id]: match.p2Score
+                    },
+                    ratings: {
+                        [match.player1Id]: { old: match.p1OldRating, new: match.p1NewRating, diff: (match.p1NewRating || 0) - (match.p1OldRating || 0) },
+                        [match.player2Id]: { old: match.p2OldRating, new: match.p2NewRating, diff: (match.p2NewRating || 0) - (match.p2OldRating || 0) }
+                    }
+                };
+                // Reconstruct a dummy room if it was fully expired from Redis
+                if (!room) {
+                    socket.emit(SERVER_EVENTS.ROOM_JOINED, { 
+                        roomId, 
+                        room: { status: 'finished', scores: finalResult.finalScores, players: {} } 
+                    });
+                }
+                socket.emit(SERVER_EVENTS.MATCH_FINISHED, finalResult);
+            }
+        }
     }
 
     async handlePlayerReady(io, socket, roomId) {
@@ -160,32 +194,15 @@ class RoomService {
 
         const room = JSON.parse(roomData);
         if (room.status === 'finished') {
-            // Do not restore active match. Recover final state.
-            const match = await prisma.match.findUnique({ where: { roomId } });
-            if (match) {
-                const finalResult = {
-                    roomId,
-                    winnerId: match.winnerId,
-                    loserId: match.loserId,
-                    reason: match.finishReason,
-                    result: match.winnerId === null ? 'DRAW' : 'WIN',
-                    finalScores: {
-                        [match.player1Id]: match.p1Score,
-                        [match.player2Id]: match.p2Score
-                    },
-                    ratings: {
-                        [match.player1Id]: { old: match.p1OldRating, new: match.p1NewRating, diff: (match.p1NewRating || 0) - (match.p1OldRating || 0) },
-                        [match.player2Id]: { old: match.p2OldRating, new: match.p2NewRating, diff: (match.p2NewRating || 0) - (match.p2OldRating || 0) }
-                    }
-                };
-                socket.emit(SERVER_EVENTS.MATCH_FINISHED, finalResult);
-            }
+            // Defensive cleanup: if the room is finished but mapping exists, delete it.
+            // Do not resurrect or auto-reconnect to a finished match.
+            await redisClient.del(`matchmaking:player:${userId}`);
             return;
         }
 
         if (room.players[userId]) {
             room.players[userId].disconnected = false;
-            await redisClient.set(roomId, JSON.stringify(room), 'EX', 86400);
+            await redisClient.set(roomId, JSON.stringify(room), 'EX', 10800);
             
             // Forcefully rejoin the socket to the room so it receives SCORE_UPDATED events
             socket.join(roomId);
@@ -205,7 +222,7 @@ class RoomService {
         const room = JSON.parse(roomData);
         if (room.players[userId]) {
             room.players[userId].disconnected = true;
-            await redisClient.set(roomId, JSON.stringify(room), 'EX', 86400);
+            await redisClient.set(roomId, JSON.stringify(room), 'EX', 10800);
             
             // Broadcast disconnect event
             io.to(roomId).emit(SERVER_EVENTS.PLAYER_DISCONNECTED, { userId });

@@ -120,6 +120,18 @@ class MatchService {
                 }
             });
 
+            // Compare-and-Delete: safely remove active match mappings in Redis
+            // only if they still point to the finishing room.
+            const LUA_COMPARE_AND_DELETE = `
+                if redis.call("GET", KEYS[1]) == ARGV[1] then
+                    return redis.call("DEL", KEYS[1])
+                else
+                    return 0
+                end
+            `;
+            await redisClient.eval(LUA_COMPARE_AND_DELETE, 1, `matchmaking:player:${match.player1Id}`, roomId);
+            await redisClient.eval(LUA_COMPARE_AND_DELETE, 1, `matchmaking:player:${match.player2Id}`, roomId);
+
             return {
                 roomId,
                 winnerId: isDraw ? null : winnerId,

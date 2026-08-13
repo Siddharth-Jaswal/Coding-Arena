@@ -8,10 +8,10 @@ const registerHandlers = (io, socket) => {
     const matchmakingService = require('../modules/matchmaking/matchmaking.service');
     const roomService = require('../modules/rooms/room.service');
 
-    socket.on(CLIENT_EVENTS.JOIN_QUEUE, async () => {
+    socket.on(CLIENT_EVENTS.JOIN_QUEUE, async (payload = {}) => {
         try {
-            await matchmakingService.joinQueue(socket.user.id, socket.id, socket.user.rating);
-            socket.emit(SERVER_EVENTS.QUEUE_JOINED, { success: true });
+            await matchmakingService.joinQueue(socket.user.id, socket.id, socket.user.rating, payload.attemptId);
+            socket.emit(SERVER_EVENTS.QUEUE_JOINED, { success: true, attemptId: payload.attemptId });
             // Attempt match immediately
             await matchmakingService.attemptMatch(io);
         } catch (error) {
