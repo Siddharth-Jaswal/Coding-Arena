@@ -9,27 +9,39 @@ class SubmissionService {
             throw new Error(`Problem ID ${problemId} does not exist.`);
         }
 
-        // Insert submission
-        const result = await pool.query(`
-            INSERT INTO submissions (user_id, problem_id, language, source_code, status)
-            VALUES ($1, $2, $3, $4, 'queued')
-            RETURNING id, status
-        `, [userId, problemId, language, sourceCode]);
+        const client = await pool.connect();
+        try {
+            await client.query('BEGIN');
 
-        const submission = result.rows[0];
+            // Insert submission
+            const result = await client.query(`
+                INSERT INTO submissions (user_id, problem_id, language, source_code, status)
+                VALUES ($1, $2, $3, $4, 'queued')
+                RETURNING id, status
+            `, [userId, problemId, language, sourceCode]);
 
-        // Push to BullMQ
-        await judgeQueue.add('process-submission', {
-            submission_id: submission.id,
-            user_id: userId,
-            problem_id: problemId,
-            language: language
-        });
+            const submission = result.rows[0];
 
-        return {
-            submission_id: submission.id,
-            status: submission.status
-        };
+            // Push to BullMQ inside transaction scope
+            await judgeQueue.add('process-submission', {
+                submission_id: submission.id,
+                user_id: userId,
+                problem_id: problemId,
+                language: language
+            });
+
+            await client.query('COMMIT');
+
+            return {
+                submission_id: submission.id,
+                status: submission.status
+            };
+        } catch (err) {
+            await client.query('ROLLBACK');
+            throw err;
+        } finally {
+            client.release();
+        }
     }
 
     async getSubmission(id) {
