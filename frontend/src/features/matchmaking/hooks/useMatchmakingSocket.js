@@ -11,6 +11,7 @@ export const useMatchmakingSocket = () => {
     if (!socket || !isConnected) return;
 
     const handleQueueJoined = (payload) => {
+      if (payload?.attemptId !== store.attemptId) return;
       if (payload?.success) {
         store.setQueued();
       }
@@ -21,6 +22,7 @@ export const useMatchmakingSocket = () => {
     };
 
     const handleMatchFound = (payload) => {
+      if (payload?.attemptId && payload.attemptId !== store.attemptId) return;
       store.setMatchFound(payload);
     };
 
@@ -29,6 +31,9 @@ export const useMatchmakingSocket = () => {
     };
 
     const handleRoomCreated = (payload) => {
+      // The backend should pass attemptId in MATCH_FOUND and ROOM_CREATED if we want to be very strict.
+      // Since ROOM_CREATED comes right after MATCH_FOUND (or with it), we can also verify attemptId.
+      if (payload?.attemptId && payload.attemptId !== store.attemptId) return;
       store.setRoomData(payload);
     };
 
@@ -55,8 +60,9 @@ export const useMatchmakingSocket = () => {
       store.setError('Not connected to server');
       return;
     }
-    store.setJoining();
-    socket.emit(CLIENT_EVENTS.JOIN_QUEUE);
+    const attemptId = crypto.randomUUID();
+    store.setJoining(attemptId);
+    socket.emit(CLIENT_EVENTS.JOIN_QUEUE, { attemptId });
   }, [socket, isConnected, store]);
 
   const cancelSearch = useCallback(() => {

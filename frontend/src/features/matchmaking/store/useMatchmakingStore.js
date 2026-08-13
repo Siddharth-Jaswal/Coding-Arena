@@ -11,11 +11,12 @@ export const useMatchmakingStore = create((set, get) => ({
   roomId: null,
   opponent: null,
   contestMetadata: null,
+  attemptId: null,
   error: null,
 
   // UI Only Actions (The actual socket emission is handled by the hook)
-  setJoining: () => {
-    set({ status: MATCHMAKING_STATES.JOINING, error: null });
+  setJoining: (attemptId) => {
+    set({ status: MATCHMAKING_STATES.JOINING, attemptId, error: null });
   },
 
   setQueued: () => {
@@ -43,7 +44,7 @@ export const useMatchmakingStore = create((set, get) => ({
     
     // Auto reset to idle
     setTimeout(() => {
-      set({ status: MATCHMAKING_STATES.IDLE, elapsedTime: 0, roomId: null, opponent: null, contestMetadata: null });
+      set({ status: MATCHMAKING_STATES.IDLE, elapsedTime: 0, roomId: null, opponent: null, contestMetadata: null, attemptId: null });
     }, 1500);
   },
 
@@ -76,6 +77,7 @@ export const useMatchmakingStore = create((set, get) => ({
       roomId: null, 
       opponent: null, 
       contestMetadata: null,
+      attemptId: null,
       error: null
     });
   }

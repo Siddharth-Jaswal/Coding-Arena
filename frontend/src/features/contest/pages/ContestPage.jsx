@@ -15,6 +15,7 @@ import { WorkspaceProvider } from '@/features/workspace/contexts/WorkspaceContex
 import { CountdownOverlay } from '../components/CountdownOverlay';
 import { MatchResultModal } from '../components/MatchResultModal';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useMatchmakingStore } from '@/features/matchmaking/store/useMatchmakingStore';
 
 const ContestRoom = () => {
   const { user } = useAuth();
@@ -46,6 +47,17 @@ const ContestRoom = () => {
 
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [status]);
+
+  // Terminal State Cleanup
+  useEffect(() => {
+    return () => {
+      // If the component unmounts while the match is in a terminal state,
+      // ensure we wipe the matchmaking store so it doesn't leak.
+      if (useMatchmakingStore.getState().status === 'finished' || status === 'finished') {
+        useMatchmakingStore.getState().reset();
+      }
+    };
   }, [status]);
 
   // Fetch full active problem data from backend (React Query cache)

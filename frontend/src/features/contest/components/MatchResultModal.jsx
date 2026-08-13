@@ -4,6 +4,8 @@ import { Trophy, Clock, XCircle, Code2, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { useNavigate } from 'react-router-dom';
 
+import { useMatchmakingStore } from '@/features/matchmaking/store/useMatchmakingStore';
+
 export const MatchResultModal = ({ room, opponent, user, scores = {}, winnerId, matchResult }) => {
   const navigate = useNavigate();
   
@@ -112,17 +114,12 @@ export const MatchResultModal = ({ room, opponent, user, scores = {}, winnerId, 
           <Button 
             variant="outline"
             className="w-full sm:w-auto min-w-[200px]"
-            onClick={() => navigate('/dashboard')}
+            onClick={() => {
+              useMatchmakingStore.getState().reset();
+              navigate('/dashboard');
+            }}
           >
             Return Dashboard
-          </Button>
-          <Button 
-            variant="primary"
-            className="w-full sm:w-auto min-w-[200px] gap-2"
-            onClick={() => navigate('/arena')}
-          >
-            Find Another Match
-            <ArrowRight size={16} />
           </Button>
         </div>
       </motion.div>

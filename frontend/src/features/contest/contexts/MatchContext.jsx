@@ -135,6 +135,9 @@ export const MatchProvider = ({ children, roomId }) => {
         message: `Match finished. ${payload.winnerId === user?.id ? 'You won!' : payload.winnerId ? 'You lost.' : 'Draw.'}`,
         timestamp: Date.now()
       }]);
+
+      // Reset the matchmaking store now that we've preserved the result locally
+      useMatchmakingStore.getState().reset();
     };
 
     const handlePlayerDisconnected = (payload) => {
