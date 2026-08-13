@@ -21,11 +21,16 @@ connection.on('error', (err) => {
 
 const { Emitter } = require('@socket.io/redis-emitter');
 const ioEmitter = new Emitter(connection);
+const matchService = require('../modules/matches/match.service');
 
 const LUA_UPDATE_SCORE = `
 local roomStr = redis.call("GET", KEYS[1])
-if not roomStr then return nil end
+if not roomStr then return cjson.encode({error="NO_ROOM"}) end
 local room = cjson.decode(roomStr)
+if room.status == 'finished' then
+    return cjson.encode({error="MATCH_FINISHED"})
+end
+
 local userId = ARGV[1]
 local problemId = tostring(ARGV[2])
 local points = tonumber(ARGV[3])
@@ -33,7 +38,6 @@ local points = tonumber(ARGV[3])
 if not room.solved then room.solved = {} end
 if not room.solved[userId] then room.solved[userId] = {} end
 
--- Use dictionary for O(1) lookup and to avoid array/object serialization ambiguities with cjson
 local alreadySolved = false
 if room.solved[userId][problemId] == true then
     alreadySolved = true
@@ -44,11 +48,42 @@ if not alreadySolved and points > 0 then
     room.solved[userId][problemId] = true
     room.scores[userId] = (room.scores[userId] or 0) + points
     awarded = points
-    redis.call("SET", KEYS[1], cjson.encode(room), "EX", 86400)
 end
 
-return cjson.encode({ awarded = awarded, newTotalScore = room.scores[userId] })
+-- Count unique solved problems for this user
+local solvedCount = 0
+for k, v in pairs(room.solved[userId]) do
+    solvedCount = solvedCount + 1
+end
+
+local matchEnded = false
+local winnerId = nil
+
+-- Check if they solved all 3
+if solvedCount >= 3 then
+    room.status = 'finished'
+    room.winner = userId
+    matchEnded = true
+    winnerId = userId
+end
+
+if awarded > 0 or matchEnded then
+    -- Retain temporarily for 3 hours after finishing
+    local ttl = matchEnded and 10800 or 86400
+    redis.call("SET", KEYS[1], cjson.encode(room), "EX", ttl)
+end
+
+return cjson.encode({
+    alreadySolved = alreadySolved,
+    pointsAwarded = awarded,
+    newTotalScore = room.scores[userId] or 0,
+    solvedCount = solvedCount,
+    matchEnded = matchEnded,
+    winnerId = winnerId
+})
 `;
+
+// Later down in processing:
 
 const worker = new Worker('judge', async (job) => {
     const { submission_id, problem_id, language, user_id } = job.data;
@@ -95,13 +130,29 @@ const worker = new Worker('judge', async (job) => {
                 
                 if (resultStr) {
                     const result = JSON.parse(resultStr);
-                    ioEmitter.to(roomId).emit('SCORE_UPDATED', {
-                        userId: user_id,
-                        problemId: problem_id,
-                        verdict,
-                        pointsAwarded: result.awarded,
-                        newTotalScore: result.newTotalScore
-                    });
+                    
+                    if (result.error) {
+                        console.log(`[Worker] Skipping update, Lua returned: ${result.error}`);
+                    } else {
+                        ioEmitter.to(roomId).emit('SCORE_UPDATED', {
+                            userId: user_id,
+                            problemId: problem_id,
+                            verdict,
+                            pointsAwarded: result.pointsAwarded,
+                            newTotalScore: result.newTotalScore
+                        });
+                        
+                        if (result.matchEnded) {
+                            try {
+                                const finalResult = await matchService.finalizeMatch(roomId, result.winnerId, 'ALL_PROBLEMS_SOLVED');
+                                if (finalResult) {
+                                    ioEmitter.to(roomId).emit('MATCH_FINISHED', finalResult);
+                                }
+                            } catch (err) {
+                                console.error('Error during early match finalization:', err);
+                            }
+                        }
+                    }
                 }
             }
         }

@@ -2,6 +2,7 @@ const { v4: uuidv4 } = require('uuid');
 const { redisClient } = require('../../redis/client');
 const prisma = require('../../config/prisma');
 const { SERVER_EVENTS } = require('../../socket/events');
+const matchService = require('../matches/match.service');
 
 class RoomService {
     async createRoom(io, player1, player2) {
@@ -39,6 +40,17 @@ class RoomService {
             endsAt: null,
             winner: null
         };
+
+        // Create Match in DB first (requirement)
+        try {
+            await matchService.createMatch(roomId, player1.id, player2.id);
+        } catch (error) {
+            console.error("Failed to create match in database:", error);
+            // Abort room creation if DB creation fails
+            if (player1.socketId) io.to(player1.socketId).emit('ERROR', { message: "Failed to initialize match" });
+            if (player2.socketId) io.to(player2.socketId).emit('ERROR', { message: "Failed to initialize match" });
+            return;
+        }
 
         // Save to Redis
         const multi = redisClient.multi();
@@ -123,25 +135,13 @@ class RoomService {
                 
                 // End timer
                 setTimeout(async () => {
-                    // Logic to end match
-                    const finalRoomStr = await redisClient.get(roomId);
-                    if (finalRoomStr) {
-                        const finalRoom = JSON.parse(finalRoomStr);
-                        finalRoom.status = 'finished';
-                        
-                        // Calculate winner
-                        const [p1, p2] = Object.keys(finalRoom.scores);
-                        let winnerId = null;
-                        if (finalRoom.scores[p1] > finalRoom.scores[p2]) winnerId = p1;
-                        else if (finalRoom.scores[p2] > finalRoom.scores[p1]) winnerId = p2;
-                        
-                        finalRoom.winner = winnerId;
-                        await redisClient.set(roomId, JSON.stringify(finalRoom), 'EX', 86400);
-                        
-                        io.to(roomId).emit(SERVER_EVENTS.MATCH_FINISHED, {
-                            winnerId,
-                            finalScores: finalRoom.scores
-                        });
+                    try {
+                        const finalResult = await matchService.finalizeMatch(roomId, null, 'TIME_EXPIRED');
+                        if (finalResult) {
+                            io.to(roomId).emit(SERVER_EVENTS.MATCH_FINISHED, finalResult);
+                        }
+                    } catch (err) {
+                        console.error('Error during timeout match finalization:', err);
                     }
                 }, durationSeconds * 1000);
 
@@ -159,6 +159,30 @@ class RoomService {
         if (!roomData) return;
 
         const room = JSON.parse(roomData);
+        if (room.status === 'finished') {
+            // Do not restore active match. Recover final state.
+            const match = await prisma.match.findUnique({ where: { roomId } });
+            if (match) {
+                const finalResult = {
+                    roomId,
+                    winnerId: match.winnerId,
+                    loserId: match.loserId,
+                    reason: match.finishReason,
+                    result: match.winnerId === null ? 'DRAW' : 'WIN',
+                    finalScores: {
+                        [match.player1Id]: match.p1Score,
+                        [match.player2Id]: match.p2Score
+                    },
+                    ratings: {
+                        [match.player1Id]: { old: match.p1OldRating, new: match.p1NewRating, diff: (match.p1NewRating || 0) - (match.p1OldRating || 0) },
+                        [match.player2Id]: { old: match.p2OldRating, new: match.p2NewRating, diff: (match.p2NewRating || 0) - (match.p2OldRating || 0) }
+                    }
+                };
+                socket.emit(SERVER_EVENTS.MATCH_FINISHED, finalResult);
+            }
+            return;
+        }
+
         if (room.players[userId]) {
             room.players[userId].disconnected = false;
             await redisClient.set(roomId, JSON.stringify(room), 'EX', 86400);
