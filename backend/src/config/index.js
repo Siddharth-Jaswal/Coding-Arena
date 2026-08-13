@@ -4,10 +4,13 @@ const dotenv = require('dotenv');
 
 const env = process.env.NODE_ENV || 'development';
 const envFile = env === 'production' ? '.env.production' : '.env.development';
+const defaultEnvPath = path.resolve(__dirname, `../../.env`);
 const envPath = path.resolve(__dirname, `../../${envFile}`);
 
 if (fs.existsSync(envPath)) {
     dotenv.config({ path: envPath });
+} else if (fs.existsSync(defaultEnvPath)) {
+    dotenv.config({ path: defaultEnvPath });
 }
 
 const isProduction = process.env.NODE_ENV === 'production';
