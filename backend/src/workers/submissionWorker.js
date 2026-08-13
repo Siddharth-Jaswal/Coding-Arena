@@ -22,6 +22,36 @@ connection.on('error', (err) => {
 const { Emitter } = require('@socket.io/redis-emitter');
 const ioEmitter = new Emitter(connection);
 
+const LUA_UPDATE_SCORE = `
+local roomStr = redis.call("GET", KEYS[1])
+if not roomStr then return nil end
+local room = cjson.decode(roomStr)
+local userId = ARGV[1]
+local problemId = tostring(ARGV[2])
+local points = tonumber(ARGV[3])
+
+if not room.solved then room.solved = {} end
+if not room.solved[userId] then room.solved[userId] = {} end
+
+local alreadySolved = false
+for i, pid in ipairs(room.solved[userId]) do
+    if tostring(pid) == problemId then
+        alreadySolved = true
+        break
+    end
+end
+
+local awarded = 0
+if not alreadySolved and points > 0 then
+    table.insert(room.solved[userId], problemId)
+    room.scores[userId] = (room.scores[userId] or 0) + points
+    awarded = points
+    redis.call("SET", KEYS[1], cjson.encode(room), "EX", 86400)
+end
+
+return cjson.encode({ awarded = awarded, newTotalScore = room.scores[userId] })
+`;
+
 const worker = new Worker('judge', async (job) => {
     const { submission_id, problem_id, language, user_id } = job.data;
     console.log(`Processing submission ${submission_id} for problem ${problem_id} (Language: ${language})`);
@@ -53,19 +83,26 @@ const worker = new Worker('judge', async (job) => {
         if (user_id) {
             const roomId = await connection.get(`matchmaking:player:${user_id}`);
             if (roomId) {
-                const roomStr = await connection.get(roomId);
-                if (roomStr) {
-                    const room = JSON.parse(roomStr);
-                    if (verdict === 'Accepted') {
-                        room.scores[user_id] = (room.scores[user_id] || 0) + 100;
-                    }
-                    await connection.set(roomId, JSON.stringify(room), 'EX', 86400);
+                const pointsToAward = verdict === 'Accepted' ? 100 : 0;
+                
+                // Atomically update the score using Lua script to prevent race conditions and duplicate points
+                const resultStr = await connection.eval(
+                    LUA_UPDATE_SCORE, 
+                    1, 
+                    roomId, 
+                    user_id, 
+                    problem_id, 
+                    pointsToAward
+                );
+                
+                if (resultStr) {
+                    const result = JSON.parse(resultStr);
                     ioEmitter.to(roomId).emit('SCORE_UPDATED', {
                         userId: user_id,
                         problemId: problem_id,
                         verdict,
-                        pointsAwarded: verdict === 'Accepted' ? 100 : 0,
-                        newTotalScore: room.scores[user_id]
+                        pointsAwarded: result.awarded,
+                        newTotalScore: result.newTotalScore
                     });
                 }
             }
