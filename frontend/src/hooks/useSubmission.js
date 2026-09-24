@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { submissionApi } from '@/api/submissions';
 
-export const useSubmission = (problemId, language) => {
+export const useSubmission = (problemId, defaultLanguage = 'cpp') => {
   const [submissionsByProblem, setSubmissionsByProblem] = useState({});
   const [consolesByProblem, setConsolesByProblem] = useState({});
 
@@ -38,11 +38,12 @@ export const useSubmission = (problemId, language) => {
 
   // The Mutation to initially submit the code
   const submitMutation = useMutation({
-    mutationFn: (source_code) => {
+    mutationFn: (payload) => {
+      const source_code = typeof payload === 'string' ? payload : payload?.source_code;
+      const language = (typeof payload === 'object' && payload?.language) || defaultLanguage;
       setConsoleMessages(''); // Clear on new submit
       appendToConsole('Starting submission process...');
       return submissionApi.createSubmission({
-        user_id: 1, // Hardcoded for now
         problem_id: parseInt(problemId, 10),
         language,
         source_code,
@@ -107,7 +108,9 @@ export const useSubmission = (problemId, language) => {
   };
 
   const runCodeMutation = useMutation({
-    mutationFn: (source_code) => {
+    mutationFn: (payload) => {
+      const source_code = typeof payload === 'string' ? payload : payload?.source_code;
+      const language = (typeof payload === 'object' && payload?.language) || defaultLanguage;
       setConsoleMessages('');
       appendToConsole('Running code against public sample tests...');
       return submissionApi.runCode({
@@ -140,9 +143,25 @@ export const useSubmission = (problemId, language) => {
     }
   });
 
+  const submitSolution = (codeOrPayload, lang) => {
+    if (typeof codeOrPayload === 'object' && codeOrPayload !== null) {
+      submitMutation.mutate(codeOrPayload);
+    } else {
+      submitMutation.mutate({ source_code: codeOrPayload, language: lang || defaultLanguage });
+    }
+  };
+
+  const runSolution = (codeOrPayload, lang) => {
+    if (typeof codeOrPayload === 'object' && codeOrPayload !== null) {
+      runCodeMutation.mutate(codeOrPayload);
+    } else {
+      runCodeMutation.mutate({ source_code: codeOrPayload, language: lang || defaultLanguage });
+    }
+  };
+
   return {
-    submitSolution: submitMutation.mutate,
-    runSolution: runCodeMutation.mutate,
+    submitSolution,
+    runSolution,
     isRunning: runCodeMutation.isPending,
     isSubmitting: submitMutation.isPending || (activeSubmission && activeSubmission.status !== 'completed'),
     activeSubmission,

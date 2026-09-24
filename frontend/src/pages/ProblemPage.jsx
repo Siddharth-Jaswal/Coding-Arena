@@ -1,6 +1,7 @@
 import React from "react";
 import { useParams, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
+import { useAuth } from "@/contexts/AuthContext";
 import { problemApi } from "@/api/problems";
 import { PageWrapper, Container, Stack, GridLayout } from "@/components/layout";
 import { Skeleton } from "@/components/ui/Skeleton";
@@ -12,6 +13,7 @@ import { fadeSlideUp, staggerChildren } from "@/lib/motion";
 
 const ProblemPage = () => {
   const { id } = useParams();
+  const { isAuthenticated } = useAuth();
 
   const {
     data,
@@ -91,10 +93,20 @@ const ProblemPage = () => {
                     ))}
                   </div>
                 </div>
-                {/* Submit Placeholder for future */}
-                <Button size="lg" className="shadow-glow-primary">
-                  Solve Challenge
-                </Button>
+                {/* Solve Challenge Action */}
+                {isAuthenticated ? (
+                  <Link to={`/problems/${problem.id}/solve`}>
+                    <Button size="lg" className="shadow-glow-primary">
+                      Solve Challenge
+                    </Button>
+                  </Link>
+                ) : (
+                  <Link to="/login" state={{ from: { pathname: `/problems/${problem.id}/solve` } }}>
+                    <Button size="lg" className="shadow-glow-primary">
+                      Log in to Solve
+                    </Button>
+                  </Link>
+                )}
               </div>
 
               <div className="flex flex-wrap gap-6 text-sm text-muted-foreground bg-card/30 p-4 rounded-xl border border-border/50 backdrop-blur-sm">

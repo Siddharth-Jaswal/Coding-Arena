@@ -69,18 +69,18 @@ export const WorkspaceProvider = ({
     setEditorStateCache(prev => ({ ...prev, [problemId]: state }));
   };
 
-  // Override submission onRun to pass cached code
+  // Override submission onRun to pass cached code and active language
   const handleRun = () => {
     if (submissionActions?.onRun && editorCode) {
       setActiveBottomTab(0); // Switch to Console tab
-      submissionActions.onRun(editorCode);
+      submissionActions.onRun({ source_code: editorCode, language: activeLanguage });
     }
   };
 
   const handleSubmit = () => {
     if (submissionActions?.onSubmit && editorCode) {
       setActiveBottomTab(2); // Switch to Submission tab
-      submissionActions.onSubmit(editorCode);
+      submissionActions.onSubmit({ source_code: editorCode, language: activeLanguage });
     }
   };
 
