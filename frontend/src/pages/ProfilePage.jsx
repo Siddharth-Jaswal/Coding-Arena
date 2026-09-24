@@ -1,5 +1,7 @@
 import React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useQuery } from '@tanstack/react-query';
+import { userApi } from '@/api/users';
 import { PageWrapper, Container } from '@/components/layout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -9,6 +11,19 @@ import { fadeSlideUp } from '@/lib/motion';
 
 export default function ProfilePage() {
   const { user, logout } = useAuth();
+
+  const { data: profileResp } = useQuery({
+    queryKey: ['user', 'me'],
+    queryFn: () => userApi.getMe(),
+  });
+
+  const { data: solvedResp } = useQuery({
+    queryKey: ['user', 'solved'],
+    queryFn: () => userApi.getMySolvedProblems(),
+  });
+
+  const currentUser = profileResp?.data || user;
+  const problemsSolved = solvedResp?.data?.length ?? currentUser?.problemsSolved ?? 0;
 
   return (
     <PageWrapper>
@@ -22,12 +37,12 @@ export default function ProfilePage() {
               <div className="w-32 h-32 rounded-full bg-primary/10 flex items-center justify-center border-2 border-primary/50 mb-4">
                 <User className="w-16 h-16 text-primary" />
               </div>
-              <h2 className="text-2xl font-bold tracking-tight">{user?.displayName || user?.username}</h2>
-              <p className="text-muted-foreground mb-6">@{user?.username}</p>
+              <h2 className="text-2xl font-bold tracking-tight">{currentUser?.displayName || currentUser?.username}</h2>
+              <p className="text-muted-foreground mb-6">@{currentUser?.username}</p>
               
               <div className="w-full flex items-center justify-center gap-2 text-sm text-muted-foreground mb-6">
                 <Mail className="h-4 w-4" />
-                {user?.email}
+                {currentUser?.email}
               </div>
 
               <Button variant="outline" className="w-full mb-2">Edit Profile</Button>
@@ -53,7 +68,7 @@ export default function ProfilePage() {
                     </div>
                     <div>
                       <p className="text-sm font-medium text-muted-foreground">Global Rating</p>
-                      <h4 className="text-2xl font-bold">{user?.rating || 1500}</h4>
+                      <h4 className="text-2xl font-bold">{currentUser?.rating || 1500}</h4>
                     </div>
                   </div>
                   
@@ -63,7 +78,7 @@ export default function ProfilePage() {
                     </div>
                     <div>
                       <p className="text-sm font-medium text-muted-foreground">Problems Solved</p>
-                      <h4 className="text-2xl font-bold">{user?.problemsSolved || 0}</h4>
+                      <h4 className="text-2xl font-bold">{problemsSolved}</h4>
                     </div>
                   </div>
 
@@ -73,7 +88,7 @@ export default function ProfilePage() {
                     </div>
                     <div>
                       <p className="text-sm font-medium text-muted-foreground">Total Matches</p>
-                      <h4 className="text-2xl font-bold">{(user?.wins || 0) + (user?.losses || 0) + (user?.draws || 0)}</h4>
+                      <h4 className="text-2xl font-bold">{(currentUser?.wins || 0) + (currentUser?.losses || 0) + (currentUser?.draws || 0)}</h4>
                     </div>
                   </div>
 
@@ -84,7 +99,7 @@ export default function ProfilePage() {
                     <div>
                       <p className="text-sm font-medium text-muted-foreground">Member Since</p>
                       <h4 className="text-lg font-bold">
-                        {user?.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'Recently'}
+                        {currentUser?.createdAt ? new Date(currentUser.createdAt).toLocaleDateString() : 'Recently'}
                       </h4>
                     </div>
                   </div>

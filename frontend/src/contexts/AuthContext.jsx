@@ -16,7 +16,7 @@ export const AuthProvider = ({ children }) => {
     queryFn: () => userApi.getMe(),
     enabled: !!token,
     retry: false,
-    staleTime: Infinity, // Keep user data fresh during session
+    staleTime: 1000 * 30, // 30 seconds fresh
   });
 
   const user = userResponse?.data;

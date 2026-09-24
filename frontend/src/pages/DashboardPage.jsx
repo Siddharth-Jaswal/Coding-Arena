@@ -28,6 +28,13 @@ const StatCard = ({ title, value, icon: Icon, color = "text-primary" }) => (
 export default function DashboardPage() {
   const { user } = useAuth();
 
+  const { data: profileResp } = useQuery({
+    queryKey: ['user', 'me'],
+    queryFn: () => userApi.getMe(),
+  });
+
+  const currentUser = profileResp?.data || user;
+
   const { data: submissionsResp } = useQuery({
     queryKey: ['user', 'submissions'],
     queryFn: () => userApi.getMySubmissions(5, 0),
@@ -38,8 +45,10 @@ export default function DashboardPage() {
     queryFn: () => userApi.getMySolvedProblems(),
   });
 
-  const recentSubmissions = submissionsResp?.data?.submissions || [];
-  const solvedCount = user?.problemsSolved || 0;
+  const recentSubmissions = Array.isArray(submissionsResp?.data)
+    ? submissionsResp.data
+    : (submissionsResp?.data?.submissions || []);
+  const solvedCount = solvedResp?.data?.length ?? currentUser?.problemsSolved ?? 0;
 
   return (
     <PageWrapper>
@@ -48,7 +57,7 @@ export default function DashboardPage() {
         {/* Welcome Section */}
         <motion.div {...fadeSlideUp} className="flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div>
-            <h1 className="text-4xl font-bold tracking-tight">Good Evening, {user?.displayName || user?.username}!</h1>
+            <h1 className="text-4xl font-bold tracking-tight">Good Evening, {currentUser?.displayName || currentUser?.username}!</h1>
             <p className="text-muted-foreground mt-2">Welcome back to the Arena. Ready for your next challenge?</p>
           </div>
           <div className="flex gap-3">
@@ -61,16 +70,16 @@ export default function DashboardPage() {
         {/* Stats Grid */}
         <motion.div variants={staggerChildren} initial="hidden" animate="show" className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <motion.div variants={fadeSlideUp}>
-            <StatCard title="Current Rating" value={user?.rating || 1500} icon={Trophy} color="text-yellow-500" />
+            <StatCard title="Current Rating" value={currentUser?.rating || 1500} icon={Trophy} color="text-yellow-500" />
           </motion.div>
           <motion.div variants={fadeSlideUp}>
             <StatCard title="Problems Solved" value={solvedCount} icon={Target} color="text-emerald-500" />
           </motion.div>
           <motion.div variants={fadeSlideUp}>
-            <StatCard title="Total Wins" value={user?.wins || 0} icon={Swords} color="text-blue-500" />
+            <StatCard title="Total Wins" value={currentUser?.wins || 0} icon={Swords} color="text-blue-500" />
           </motion.div>
           <motion.div variants={fadeSlideUp}>
-            <StatCard title="Total Losses" value={user?.losses || 0} icon={Shield} color="text-rose-500" />
+            <StatCard title="Total Losses" value={currentUser?.losses || 0} icon={Shield} color="text-rose-500" />
           </motion.div>
         </motion.div>
 
