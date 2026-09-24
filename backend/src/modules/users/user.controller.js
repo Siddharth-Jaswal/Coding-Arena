@@ -1,11 +1,19 @@
 const userService = require('./user.service');
 
 const getMe = async (req, res) => {
-    // req.user is populated by auth.middleware
-    res.status(200).json({
-        success: true,
-        data: req.user
-    });
+    try {
+        const profile = await userService.getUserProfile(req.user.id);
+        res.status(200).json({
+            success: true,
+            data: profile || req.user
+        });
+    } catch (error) {
+        console.error('Get Me Error:', error);
+        res.status(200).json({
+            success: true,
+            data: req.user
+        });
+    }
 };
 
 const updateProfile = async (req, res) => {

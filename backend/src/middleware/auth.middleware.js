@@ -29,10 +29,16 @@ const requireAuth = async (req, res, next) => {
             id: user.id,
             username: user.username,
             email: user.email,
+            displayName: user.displayName,
+            avatar: user.avatar,
             rating: user.rating,
+            maxRating: user.maxRating,
             wins: user.wins,
             losses: user.losses,
-            draws: user.draws
+            draws: user.draws,
+            problemsSolved: user.problemsSolved,
+            createdAt: user.createdAt,
+            updatedAt: user.updatedAt
         };
 
         next();

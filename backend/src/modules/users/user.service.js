@@ -1,6 +1,41 @@
 const prisma = require('../../config/prisma');
 
 class UserService {
+    async getUserProfile(userId) {
+        const user = await prisma.user.findUnique({
+            where: { id: userId },
+            select: {
+                id: true,
+                username: true,
+                email: true,
+                displayName: true,
+                avatar: true,
+                rating: true,
+                maxRating: true,
+                wins: true,
+                losses: true,
+                draws: true,
+                problemsSolved: true,
+                createdAt: true,
+                updatedAt: true
+            }
+        });
+        if (!user) return null;
+
+        const solvedCount = await prisma.userProblemStatus.count({
+            where: { userId, status: 'Accepted' }
+        });
+
+        if (user.problemsSolved !== solvedCount) {
+            await prisma.user.update({
+                where: { id: userId },
+                data: { problemsSolved: solvedCount }
+            });
+            user.problemsSolved = solvedCount;
+        }
+
+        return user;
+    }
     async updateUser(userId, data) {
         return prisma.user.update({
             where: { id: userId },

@@ -22,6 +22,7 @@ connection.on('error', (err) => {
 const { Emitter } = require('@socket.io/redis-emitter');
 const ioEmitter = new Emitter(connection);
 const matchService = require('../modules/matches/match.service');
+const prisma = require('../config/prisma');
 
 const LUA_UPDATE_SCORE = `
 local roomStr = redis.call("GET", KEYS[1])
@@ -112,7 +113,71 @@ const worker = new Worker('judge', async (job) => {
 
         console.log(`[Worker] Sub ${submission_id} completed | Verdict: ${verdict} | Time: ${executionTimeMs}ms`);
 
-        // 5. Broadcast to Socket Room if part of a contest
+        // 5. Update UserProblemStatus and problemsSolved in DB
+        if (user_id) {
+            try {
+                const numericProblemId = BigInt(problem_id);
+                const isAccepted = verdict === 'Accepted';
+
+                const existingStatus = await prisma.userProblemStatus.findUnique({
+                    where: {
+                        userId_problemId: {
+                            userId: user_id,
+                            problemId: numericProblemId
+                        }
+                    }
+                });
+
+                if (!existingStatus) {
+                    await prisma.userProblemStatus.create({
+                        data: {
+                            userId: user_id,
+                            problemId: numericProblemId,
+                            status: verdict,
+                            bestRuntime: executionTimeMs,
+                            firstSolvedAt: isAccepted ? new Date() : null,
+                            lastSubmissionAt: new Date()
+                        }
+                    });
+                } else {
+                    const wasAccepted = existingStatus.status === 'Accepted';
+                    const newStatus = wasAccepted ? 'Accepted' : verdict;
+                    const bestRuntime = isAccepted
+                        ? (existingStatus.bestRuntime ? Math.min(existingStatus.bestRuntime, executionTimeMs) : executionTimeMs)
+                        : existingStatus.bestRuntime;
+
+                    await prisma.userProblemStatus.update({
+                        where: {
+                            userId_problemId: {
+                                userId: user_id,
+                                problemId: numericProblemId
+                            }
+                        },
+                        data: {
+                            status: newStatus,
+                            bestRuntime,
+                            firstSolvedAt: wasAccepted ? existingStatus.firstSolvedAt : (isAccepted ? new Date() : null),
+                            lastSubmissionAt: new Date()
+                        }
+                    });
+                }
+
+                // Sync accurate count of distinct solved problems
+                if (isAccepted) {
+                    const count = await prisma.userProblemStatus.count({
+                        where: { userId: user_id, status: 'Accepted' }
+                    });
+                    await prisma.user.update({
+                        where: { id: user_id },
+                        data: { problemsSolved: count }
+                    });
+                }
+            } catch (err) {
+                console.error('[Worker] Error updating UserProblemStatus:', err);
+            }
+        }
+
+        // 6. Broadcast to Socket Room if part of a contest
         if (user_id) {
             const roomId = await connection.get(`matchmaking:player:${user_id}`);
             if (roomId) {
