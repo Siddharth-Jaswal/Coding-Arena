@@ -44,6 +44,14 @@ export const LiveScoreboard = ({
           >
             {currentScore}
           </motion.div>
+          {penalties[currentUser?.id] > 0 ? (
+            <div className="text-[11px] font-mono text-amber-400 mt-1 flex items-center gap-1 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">
+              <span>{penalties[currentUser.id]} pen</span>
+              <span className="text-muted-foreground">(-{penalties[currentUser.id] * 5} pts)</span>
+            </div>
+          ) : (
+            <span className="text-[10px] font-mono text-muted-foreground/50 mt-1">0 penalties</span>
+          )}
         </div>
 
         <div className="text-xl font-black text-muted-foreground/30">VS</div>
@@ -60,8 +68,17 @@ export const LiveScoreboard = ({
           >
             {opponentScore}
           </motion.div>
+          {opponent && penalties[opponent?.id] > 0 ? (
+            <div className="text-[11px] font-mono text-amber-400 mt-1 flex items-center gap-1 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">
+              <span>{penalties[opponent.id]} pen</span>
+              <span className="text-muted-foreground">(-{penalties[opponent.id] * 5} pts)</span>
+            </div>
+          ) : (
+            <span className="text-[10px] font-mono text-muted-foreground/50 mt-1">0 penalties</span>
+          )}
         </div>
       </div>
     </div>
   );
 };
+

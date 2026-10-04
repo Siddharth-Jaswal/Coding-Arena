@@ -5,4 +5,6 @@ export const userApi = {
   updateProfile: (data) => apiClient.patch('/api/users/me', data),
   getMySubmissions: (limit = 10, offset = 0) => apiClient.get(`/api/users/me/submissions?limit=${limit}&offset=${offset}`),
   getMySolvedProblems: () => apiClient.get('/api/users/me/solved'),
+  getMyMatches: (limit = 10) => apiClient.get(`/api/users/me/matches?limit=${limit}`),
 };
+

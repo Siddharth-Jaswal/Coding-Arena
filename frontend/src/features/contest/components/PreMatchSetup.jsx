@@ -63,6 +63,7 @@ export const PreMatchSetup = () => {
     bailOut, 
     status, 
     scores, 
+    penalties,
     winnerId, 
     matchResult 
   } = useMatchContext();
@@ -436,6 +437,7 @@ export const PreMatchSetup = () => {
           opponent={opponent}
           user={user}
           scores={scores}
+          penalties={penalties}
           winnerId={winnerId}
           matchResult={matchResult}
         />

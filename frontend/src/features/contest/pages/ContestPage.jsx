@@ -26,6 +26,7 @@ const ContestRoom = () => {
     opponent,
     status,
     scores,
+    penalties,
     events,
     endsAt,
     activeProblemId,
@@ -143,6 +144,7 @@ const ContestRoom = () => {
             currentUser={user}
             opponent={opponent}
             scores={scores}
+            penalties={penalties}
             status={status}
           />
           <MatchEventFeed events={events} />
@@ -159,6 +161,7 @@ const ContestRoom = () => {
           opponent={opponent}
           user={user}
           scores={scores}
+          penalties={penalties}
           winnerId={winnerId}
           matchResult={matchResult}
         />

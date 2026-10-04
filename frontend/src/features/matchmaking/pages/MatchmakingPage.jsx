@@ -7,12 +7,10 @@ import { GAME_MODES, MATCHMAKING_STATES } from '../constants/matchmaking.constan
 
 // Components
 import { MatchmakingHero } from '../components/MatchmakingHero';
-import { QueueHeader } from '../components/QueueHeader';
 import { QueueCard } from '../components/QueueCard';
 import { QueueTimeline } from '../components/QueueTimeline';
 import { GameModeCard } from '../components/GameModeCard';
 import { MatchmakingRules } from '../components/MatchmakingRules';
-import { QueueStatistics } from '../components/QueueStatistics';
 import { ServerStatusCard } from '../components/ServerStatusCard';
 import { RecentMatchesCard } from '../components/RecentMatchesCard';
 import { FutureFeaturesGrid } from '../components/FutureFeaturesGrid';
@@ -38,7 +36,6 @@ const MatchmakingPage = () => {
         {/* Header & Hero */}
         <Section>
           <MatchmakingHero />
-          <QueueHeader />
         </Section>
 
         {/* Core Queue Area */}
@@ -78,18 +75,18 @@ const MatchmakingPage = () => {
           </div>
         </Section>
 
-        {/* Stats & History */}
+        {/* Server Status & History */}
         <Section className="mt-12">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="space-y-8">
-              <QueueStatistics />
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div>
               <ServerStatusCard />
             </div>
-            <div className="md:col-span-2">
+            <div className="lg:col-span-2">
               <RecentMatchesCard />
             </div>
           </div>
         </Section>
+
 
         {/* Future Features */}
         <Section className="mt-12 border-t border-border/50 pt-12">

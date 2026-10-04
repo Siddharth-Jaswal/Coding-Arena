@@ -18,6 +18,7 @@ export const MatchProvider = ({ children, roomId }) => {
   const [opponent, setOpponent] = useState(storeOpponent || null);
   const [status, setStatus] = useState(storeMetadata?.status || 'waiting');
   const [scores, setScores] = useState(storeMetadata?.scores || {});
+  const [penalties, setPenalties] = useState(storeMetadata?.penalties || {});
   const [events, setEvents] = useState([]);
   const [matchResult, setMatchResult] = useState(null);
   const [endsAt, setEndsAt] = useState(storeMetadata?.endsAt || null);
@@ -49,6 +50,7 @@ export const MatchProvider = ({ children, roomId }) => {
         setStatus(payload.room.status);
         if (payload.room.setup) setSetup(payload.room.setup);
         setScores(payload.room.scores || {});
+        if (payload.room.penalties) setPenalties(payload.room.penalties);
         if (payload.room.endsAt) setEndsAt(payload.room.endsAt);
         if (payload.room.winner) setWinnerId(payload.room.winner);
         
@@ -169,8 +171,11 @@ export const MatchProvider = ({ children, roomId }) => {
     };
 
     const handleScoreUpdated = (payload) => {
-      // Payload structure from backend: { userId, problemId, verdict, pointsAwarded, newTotalScore }
+      // Payload structure from backend: { userId, problemId, verdict, pointsAwarded, newTotalScore, penaltyDeduction, penaltyCount, penalties }
       setScores(prev => ({ ...prev, [payload.userId]: payload.newTotalScore }));
+      if (payload.penalties) {
+        setPenalties(payload.penalties);
+      }
       
       const isMe = payload.userId === user?.id;
       const actor = isMe ? 'me' : 'opponent';
@@ -208,6 +213,9 @@ export const MatchProvider = ({ children, roomId }) => {
       // Override local scores with final scores from backend
       if (payload.finalScores) {
           setScores(payload.finalScores);
+      }
+      if (payload.penalties) {
+          setPenalties(payload.penalties);
       }
       
       setEvents(prev => [...prev, {
@@ -275,6 +283,7 @@ export const MatchProvider = ({ children, roomId }) => {
     opponent,
     status,
     scores,
+    penalties,
     events,
     endsAt,
     activeProblemId,

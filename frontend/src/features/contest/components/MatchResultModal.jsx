@@ -51,7 +51,7 @@ function useCountUp(target, start = 0, duration = 1400) {
   return count;
 }
 
-export const MatchResultModal = ({ room, opponent, user, scores = {}, winnerId, matchResult }) => {
+export const MatchResultModal = ({ room, opponent, user, scores = {}, penalties = {}, winnerId, matchResult }) => {
   const navigate = useNavigate();
   
   if (!room) return null;
@@ -59,8 +59,12 @@ export const MatchResultModal = ({ room, opponent, user, scores = {}, winnerId, 
   const currentScore = scores[user?.id] || 0;
   const opponentScore = opponent ? (scores[opponent.id] || 0) : 0;
   
+  const userPenalties = penalties?.[user?.id] ?? matchResult?.penalties?.[user?.id] ?? 0;
+  const opponentPenalties = opponent ? (penalties?.[opponent.id] ?? matchResult?.penalties?.[opponent.id] ?? 0) : 0;
+
   const isWinner = winnerId === user?.id;
   const isDraw = currentScore === opponentScore;
+
 
   // Extract Rating data from matchResult
   const userRatingData = matchResult?.ratings?.[user?.id];
@@ -236,6 +240,11 @@ export const MatchResultModal = ({ room, opponent, user, scores = {}, winnerId, 
           <div className="flex flex-col items-center text-center">
             <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">You</span>
             <span className="text-3xl sm:text-4xl font-mono font-black text-foreground">{currentScore}</span>
+            {userPenalties > 0 && (
+              <span className="text-[10px] font-mono text-amber-400 mt-1 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20">
+                {userPenalties} pen (-{userPenalties * 5} pts)
+              </span>
+            )}
             <span className="text-xs text-muted-foreground/80 mt-1 font-mono">
               Rating: {userNewRating}
             </span>
@@ -260,6 +269,11 @@ export const MatchResultModal = ({ room, opponent, user, scores = {}, winnerId, 
               {opponent?.username || 'Opponent'}
             </span>
             <span className="text-3xl sm:text-4xl font-mono font-black text-foreground">{opponentScore}</span>
+            {opponentPenalties > 0 && (
+              <span className="text-[10px] font-mono text-amber-400 mt-1 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20">
+                {opponentPenalties} pen (-{opponentPenalties * 5} pts)
+              </span>
+            )}
             <span className="text-xs text-muted-foreground/80 mt-1 font-mono">
               Rating: {opponentRatingData?.new ?? opponent?.rating ?? 1200}
               {opponentRatingData?.diff !== undefined && (
@@ -269,6 +283,7 @@ export const MatchResultModal = ({ room, opponent, user, scores = {}, winnerId, 
               )}
             </span>
           </div>
+
         </div>
 
         {/* Action Buttons */}
