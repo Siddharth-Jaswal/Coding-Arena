@@ -116,18 +116,18 @@ const ProblemsPage = () => {
                   className="w-full"
                 />
               </div>
-              <div className="flex gap-4 w-full md:w-auto">
+              <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 w-full md:w-auto">
                 <Select
                   value={difficulty}
                   onChange={(val) => setDifficulty(val)}
                   options={difficultyOptions}
-                  className="w-full md:w-48"
+                  className="w-full sm:w-48"
                 />
                 <Select
                   value={tag}
                   onChange={(val) => setTag(val)}
                   options={tagOptions}
-                  className="w-full md:w-48"
+                  className="w-full sm:w-48"
                 />
               </div>
             </div>

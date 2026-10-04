@@ -151,33 +151,34 @@ export const PreMatchSetup = () => {
         <motion.div 
           initial={{ opacity: 0, scale: 0.96 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="w-full bg-white/[0.03] backdrop-blur-xl border border-white/10 rounded-2xl p-4 sm:p-5 flex items-center justify-between gap-4 mb-6 shadow-xl"
+          className="w-full bg-white/[0.03] backdrop-blur-xl border border-white/10 rounded-2xl p-3 sm:p-5 flex items-center justify-between gap-2 sm:gap-4 mb-6 shadow-xl"
         >
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center font-bold text-amber-300">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center font-bold text-amber-300 text-xs sm:text-base shrink-0">
               {myName[0]?.toUpperCase()}
             </div>
-            <div>
-              <div className="text-xs sm:text-sm font-bold text-white flex items-center gap-1.5">
-                {myName} <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 font-semibold">You</span>
+            <div className="min-w-0">
+              <div className="text-xs sm:text-sm font-bold text-white flex items-center gap-1 sm:gap-1.5 truncate">
+                <span className="truncate">{myName}</span>
+                <span className="text-[9px] sm:text-[10px] px-1 sm:px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 font-semibold shrink-0">You</span>
               </div>
-              <div className="text-[11px] text-neutral-400 font-mono">Assigned: <strong className="text-amber-300">HEADS</strong></div>
+              <div className="text-[10px] sm:text-[11px] text-neutral-400 font-mono">Assigned: <strong className="text-amber-300">HEADS</strong></div>
             </div>
           </div>
 
-          <div className="flex flex-col items-center">
-            <span className="text-[11px] font-black uppercase tracking-wider text-amber-400 bg-amber-500/10 px-3 py-1 rounded-full border border-amber-500/30 flex items-center gap-1.5 shadow-sm">
-              <Coins className="w-3.5 h-3.5" /> 3 Flips
+          <div className="flex flex-col items-center shrink-0">
+            <span className="text-[9px] sm:text-[11px] font-black uppercase tracking-wider text-amber-400 bg-amber-500/10 px-2 sm:px-3 py-0.5 sm:py-1 rounded-full border border-amber-500/30 flex items-center gap-1 sm:gap-1.5 shadow-sm">
+              <Coins className="w-3 h-3 sm:w-3.5 sm:h-3.5" /> 3 Flips
             </span>
-            <span className="text-[10px] text-neutral-500 mt-1 font-mono">Ranked 1v1</span>
+            <span className="text-[9px] sm:text-[10px] text-neutral-500 mt-0.5 sm:mt-1 font-mono">Ranked 1v1</span>
           </div>
 
-          <div className="flex items-center gap-3 text-right">
-            <div>
-              <div className="text-xs sm:text-sm font-bold text-white">{opponentName}</div>
-              <div className="text-[11px] text-neutral-400 font-mono">Assigned: <strong className="text-neutral-300">TAILS</strong></div>
+          <div className="flex items-center gap-2 sm:gap-3 text-right min-w-0">
+            <div className="min-w-0">
+              <div className="text-xs sm:text-sm font-bold text-white truncate">{opponentName}</div>
+              <div className="text-[10px] sm:text-[11px] text-neutral-400 font-mono">Assigned: <strong className="text-neutral-300">TAILS</strong></div>
             </div>
-            <div className="w-10 h-10 rounded-xl bg-neutral-600/20 border border-neutral-500/30 flex items-center justify-center font-bold text-neutral-300">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-neutral-600/20 border border-neutral-500/30 flex items-center justify-center font-bold text-neutral-300 text-xs sm:text-base shrink-0">
               {opponentName[0]?.toUpperCase()}
             </div>
           </div>

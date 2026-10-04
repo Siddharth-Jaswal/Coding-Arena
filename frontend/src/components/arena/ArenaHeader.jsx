@@ -14,10 +14,10 @@ export const ArenaHeader = ({ problem, isLoading }) => {
           {isLoading ? (
             <div className="h-5 w-48 bg-white/5 rounded animate-pulse" />
           ) : (
-            <div className="flex items-center gap-3">
-              <span className="font-semibold">{problem?.title || 'Loading Problem...'}</span>
+            <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+              <span className="font-semibold truncate max-w-[150px] xs:max-w-[240px] sm:max-w-none">{problem?.title || 'Loading Problem...'}</span>
               {problem?.difficulty && (
-                <Badge variant={problem.difficulty.toLowerCase() === 'easy' ? 'success' : problem.difficulty.toLowerCase() === 'medium' ? 'warning' : 'destructive'} className="scale-75 origin-left">
+                <Badge variant={problem.difficulty.toLowerCase() === 'easy' ? 'success' : problem.difficulty.toLowerCase() === 'medium' ? 'warning' : 'destructive'} className="scale-75 origin-left shrink-0">
                   {problem.difficulty}
                 </Badge>
               )}

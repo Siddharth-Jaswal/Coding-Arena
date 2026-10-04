@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
@@ -17,10 +17,13 @@ import { MatchResultModal } from '../components/MatchResultModal';
 import { PreMatchSetup } from '../components/PreMatchSetup';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useMatchmakingStore } from '@/features/matchmaking/store/useMatchmakingStore';
+import { BookOpen, Code2, Terminal, Swords, CheckCircle2, AlertCircle } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 const ContestRoom = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [mobileTab, setMobileTab] = useState('problem');
   const {
     room,
     opponent,
@@ -100,18 +103,113 @@ const ContestRoom = () => {
     <div className="flex flex-col h-screen w-full overflow-hidden bg-[#050505]">
       <ContestHeader room={room} status={status} endsAt={endsAt} />
       
-      <div className="flex-1 flex overflow-hidden relative z-10">
-        {/* Left Sidebar (Fixed) */}
-        <ProblemNavigator 
-          problems={room.problems}
-          activeProblemId={activeProblemId}
-          onProblemChange={setActiveProblemId}
-          solvedProblemIds={solvedProblemIds}
-          attemptedProblemIds={attemptedProblemIds}
-          disabled={status !== 'running'}
-        />
+      {/* Mobile Sub-Header: Problem Selector & Mobile Navigation Tabs (visible only on < lg) */}
+      <div className="lg:hidden flex flex-col border-b border-border/50 bg-[#07070c] shrink-0">
+        {/* Problem Selector Pills */}
+        {room?.problems && room.problems.length > 0 && (
+          <div className="flex items-center gap-2 px-3 py-2 overflow-x-auto border-b border-white/5 custom-scrollbar">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mr-1 shrink-0">Problems:</span>
+            {room.problems.map((prob, idx) => {
+              const isCurrent = prob.id === activeProblemId;
+              const isSolved = solvedProblemIds?.includes(prob.id);
+              const isAttempted = attemptedProblemIds?.includes(prob.id);
+              const letter = String.fromCharCode(65 + idx);
 
-        {/* Center Workspace (Draggable Internally) */}
+              return (
+                <button
+                  key={prob.id}
+                  onClick={() => {
+                    if (status === 'running') setActiveProblemId(prob.id);
+                  }}
+                  disabled={status !== 'running'}
+                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold transition-all shrink-0 ${
+                    isCurrent
+                      ? 'bg-primary text-primary-foreground shadow-glow-primary'
+                      : 'bg-white/5 text-neutral-400 hover:text-white'
+                  }`}
+                >
+                  <span>{letter}</span>
+                  <span className="text-[10px] max-w-[80px] truncate hidden xs:inline">{prob.title}</span>
+                  {isSolved ? (
+                    <CheckCircle2 size={12} className="text-emerald-400" />
+                  ) : isAttempted ? (
+                    <AlertCircle size={12} className="text-amber-400" />
+                  ) : null}
+                </button>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Unified 4-Tab Bar on Mobile */}
+        <div className="flex items-center justify-around p-1 bg-[#0a0a10]">
+          <button
+            onClick={() => setMobileTab('problem')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+              mobileTab === 'problem'
+                ? 'bg-primary/20 text-primary border border-primary/30'
+                : 'text-neutral-400 hover:text-white'
+            }`}
+          >
+            <BookOpen size={13} />
+            <span>Problem</span>
+          </button>
+          <button
+            onClick={() => setMobileTab('code')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+              mobileTab === 'code'
+                ? 'bg-primary/20 text-primary border border-primary/30'
+                : 'text-neutral-400 hover:text-white'
+            }`}
+          >
+            <Code2 size={13} />
+            <span>Editor</span>
+          </button>
+          <button
+            onClick={() => setMobileTab('console')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+              mobileTab === 'console'
+                ? 'bg-primary/20 text-primary border border-primary/30'
+                : 'text-neutral-400 hover:text-white'
+            }`}
+          >
+            <Terminal size={13} />
+            <span>Console</span>
+            {(isRunning || isSubmitting) && (
+              <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping ml-0.5" />
+            )}
+          </button>
+          <button
+            onClick={() => setMobileTab('battle')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+              mobileTab === 'battle'
+                ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                : 'text-neutral-400 hover:text-white'
+            }`}
+          >
+            <Swords size={13} />
+            <span>Battle</span>
+            {opponent?.disconnected && (
+              <span className="w-2 h-2 rounded-full bg-red-400 animate-ping ml-0.5" />
+            )}
+          </button>
+        </div>
+      </div>
+
+      <div className="flex-1 flex overflow-hidden relative z-10">
+        {/* Left Sidebar (Desktop Only) */}
+        <div className="hidden lg:flex">
+          <ProblemNavigator 
+            problems={room.problems}
+            activeProblemId={activeProblemId}
+            onProblemChange={setActiveProblemId}
+            solvedProblemIds={solvedProblemIds}
+            attemptedProblemIds={attemptedProblemIds}
+            disabled={status !== 'running'}
+          />
+        </div>
+
+        {/* Center Workspace Area */}
         <WorkspaceProvider
           activeProblem={activeProblem}
           submissionState={{
@@ -130,11 +228,37 @@ const ContestRoom = () => {
             readOnly: status !== 'running'
           }}
         >
-          <ArenaWorkspace />
+          {/* Mobile Battle View (Only shown when mobile and mobileTab is 'battle') */}
+          <div className={cn("flex-1 min-h-0", mobileTab === 'battle' ? "block lg:hidden" : "hidden")}>
+            <div className="h-full overflow-y-auto p-4 flex flex-col gap-4 bg-[#08080c]">
+              <PlayerCard 
+                user={opponent}
+                isOnline={!opponent?.disconnected}
+                title="Opponent"
+              />
+              <LiveScoreboard 
+                currentUser={user}
+                opponent={opponent}
+                scores={scores}
+                penalties={penalties}
+                status={status}
+              />
+              <MatchEventFeed events={events} />
+            </div>
+          </div>
+
+          {/* Arena Workspace (Always shown on desktop; on mobile shown when mobileTab != 'battle') */}
+          <div className={cn("flex-1 min-h-0", mobileTab === 'battle' ? "hidden lg:flex flex-col" : "flex flex-col")}>
+            <ArenaWorkspace 
+              mobileTab={mobileTab} 
+              onMobileTabChange={setMobileTab} 
+              hideMobileTabBar={true} 
+            />
+          </div>
         </WorkspaceProvider>
 
-        {/* Right Sidebar (Fixed) */}
-        <div className="w-80 bg-card/40 border-l border-border/50 flex flex-col p-4 gap-4 overflow-y-auto backdrop-blur-md">
+        {/* Right Sidebar (Desktop Only) */}
+        <div className="hidden lg:flex w-80 bg-card/40 border-l border-border/50 flex-col p-4 gap-4 overflow-y-auto backdrop-blur-md">
           <PlayerCard 
             user={opponent}
             isOnline={!opponent?.disconnected}

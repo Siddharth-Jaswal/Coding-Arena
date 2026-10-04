@@ -13,13 +13,13 @@ import { fadeSlideUp, staggerChildren } from '@/lib/motion';
 
 const StatCard = ({ title, value, icon: Icon, color = "text-primary" }) => (
   <Card className="border-border/50 bg-card/40 backdrop-blur-sm">
-    <CardContent className="p-6 flex items-center gap-4">
-      <div className={`p-3 rounded-xl bg-background/50 ${color}`}>
-        <Icon className="h-6 w-6" />
+    <CardContent className="p-4 sm:p-6 flex items-center gap-3 sm:gap-4">
+      <div className={`p-2.5 sm:p-3 rounded-xl bg-background/50 ${color} shrink-0`}>
+        <Icon className="h-5 w-5 sm:h-6 sm:w-6" />
       </div>
-      <div>
-        <p className="text-sm font-medium text-muted-foreground">{title}</p>
-        <h4 className="text-2xl font-bold">{value}</h4>
+      <div className="min-w-0">
+        <p className="text-xs sm:text-sm font-medium text-muted-foreground truncate">{title}</p>
+        <h4 className="text-xl sm:text-2xl font-bold">{value}</h4>
       </div>
     </CardContent>
   </Card>
@@ -52,13 +52,13 @@ export default function DashboardPage() {
 
   return (
     <PageWrapper>
-      <Container className="py-8 space-y-8">
+      <Container className="py-6 sm:py-8 space-y-6 sm:space-y-8">
         
         {/* Welcome Section */}
         <motion.div {...fadeSlideUp} className="flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div>
-            <h1 className="text-4xl font-bold tracking-tight">Good Evening, {currentUser?.displayName || currentUser?.username}!</h1>
-            <p className="text-muted-foreground mt-2">Welcome back to the Arena. Ready for your next challenge?</p>
+            <h1 className="text-2xl sm:text-4xl font-bold tracking-tight">Good Evening, {currentUser?.displayName || currentUser?.username}!</h1>
+            <p className="text-muted-foreground text-sm sm:text-base mt-1.5 sm:mt-2">Welcome back to the Arena. Ready for your next challenge?</p>
           </div>
           <div className="flex gap-3">
             <Button asChild size="lg" className="shadow-lg shadow-primary/20">
