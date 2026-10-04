@@ -274,9 +274,38 @@ worker.on('error', (err) => {
     console.error("❌ Judge Worker encountered an error:", err);
 });
 
+// Render Web Service Health Check Server
+// In production or when WORKER_PORT is set, bind an HTTP server so Render Web Service marks it healthy
+const http = require('http');
+const isProd = process.env.NODE_ENV === 'production';
+const WORKER_HTTP_PORT = process.env.WORKER_PORT || (isProd ? (process.env.PORT || 10000) : null);
+
+let healthServer = null;
+if (WORKER_HTTP_PORT) {
+    healthServer = http.createServer((req, res) => {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({
+            status: 'ok',
+            service: 'code_arena_judge_worker',
+            workerStatus: 'listening',
+            uptime: Math.floor(process.uptime()),
+            timestamp: new Date().toISOString()
+        }));
+    });
+
+    healthServer.listen(WORKER_HTTP_PORT, () => {
+        console.log(`[WORKER] Health check HTTP server listening on port ${WORKER_HTTP_PORT}`);
+    });
+}
+
 async function gracefulShutdown() {
     console.log('\n[WORKER] Initiating graceful shutdown...');
     try {
+        if (healthServer) {
+            console.log('[WORKER] Closing HTTP health server');
+            healthServer.close();
+        }
+
         console.log('[WORKER] 1. Closing BullMQ Worker (waiting for active jobs)');
         await worker.close();
 
@@ -296,3 +325,4 @@ async function gracefulShutdown() {
 
 process.on('SIGTERM', gracefulShutdown);
 process.on('SIGINT', gracefulShutdown);
+
