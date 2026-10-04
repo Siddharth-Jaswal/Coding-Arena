@@ -79,24 +79,121 @@ class MatchService {
             const p1 = await tx.user.findUnique({ where: { id: match.player1Id } });
             const p2 = await tx.user.findUnique({ where: { id: match.player2Id } });
 
-            let p1NewRating = p1.rating;
-            let p2NewRating = p2.rating;
+            // True Elo Calculation Engine
+            let outcome = 0.5;
+            if (!isDraw) {
+                outcome = winnerId === match.player1Id ? 1 : 0;
+            }
+
+            const expectedP1 = 1 / (1 + Math.pow(10, (p2.rating - p1.rating) / 400));
+            const expectedP2 = 1 - expectedP1;
+
+            const getK = (r) => {
+                if (r < 1400) return 40;
+                if (r < 2000) return 32;
+                return 24;
+            };
+
+            const k1 = getK(p1.rating);
+            const k2 = getK(p2.rating);
+
+            let p1Delta = Math.round(k1 * (outcome - expectedP1));
+            let p2Delta = Math.round(k2 * ((1 - outcome) - expectedP2));
+
+            // Decisive result floor: at least +/- 6 points
+            if (outcome === 1) {
+                if (p1Delta < 6) p1Delta = 6;
+                if (p2Delta > -6) p2Delta = -6;
+            } else if (outcome === 0) {
+                if (p1Delta > -6) p1Delta = -6;
+                if (p2Delta < 6) p2Delta = 6;
+            }
+
+            const p1NewRating = Math.max(100, p1.rating + p1Delta);
+            const p2NewRating = Math.max(100, p2.rating + p2Delta);
+
+            const TIERS = [
+                { name: 'Bronze', title: 'Novice', min: 0, max: 1199, color: '#f59e0b', badge: 'Shield' },
+                { name: 'Silver', title: 'Specialist', min: 1200, max: 1499, color: '#94a3b8', badge: 'Swords' },
+                { name: 'Gold', title: 'Expert', min: 1500, max: 1799, color: '#eab308', badge: 'Crown' },
+                { name: 'Platinum', title: 'Master', min: 1800, max: 2099, color: '#06b6d4', badge: 'Gem' },
+                { name: 'Grandmaster', title: 'Guardian', min: 2100, max: 3000, color: '#ec4899', badge: 'Flame' }
+            ];
+
+            const getTierInfo = (rating) => {
+                const r = Math.max(0, rating || 0);
+                const t = TIERS.find(x => r >= x.min && r <= x.max) || TIERS[TIERS.length - 1];
+                const span = Math.max(1, t.max - t.min);
+                const progressPercent = Math.min(100, Math.max(0, Math.round(((r - t.min) / span) * 100)));
+                const pointsToNext = Math.max(0, t.max + 1 - r);
+                return {
+                    name: t.name,
+                    title: t.title,
+                    min: t.min,
+                    max: t.max,
+                    color: t.color,
+                    badge: t.badge,
+                    progressPercent,
+                    pointsToNext
+                };
+            };
+
+            const p1Tier = getTierInfo(p1NewRating);
+            const p1PrevTier = getTierInfo(p1.rating);
+            const p2Tier = getTierInfo(p2NewRating);
+            const p2PrevTier = getTierInfo(p2.rating);
 
             if (isDraw) {
-                await tx.user.update({ where: { id: p1.id }, data: { draws: { increment: 1 } } });
-                await tx.user.update({ where: { id: p2.id }, data: { draws: { increment: 1 } } });
+                await tx.user.update({
+                    where: { id: p1.id },
+                    data: {
+                        draws: { increment: 1 },
+                        rating: p1NewRating,
+                        maxRating: Math.max(p1.maxRating || 0, p1NewRating)
+                    }
+                });
+                await tx.user.update({
+                    where: { id: p2.id },
+                    data: {
+                        draws: { increment: 1 },
+                        rating: p2NewRating,
+                        maxRating: Math.max(p2.maxRating || 0, p2NewRating)
+                    }
+                });
+            } else if (winnerId === p1.id) {
+                await tx.user.update({
+                    where: { id: p1.id },
+                    data: {
+                        wins: { increment: 1 },
+                        rating: p1NewRating,
+                        maxRating: Math.max(p1.maxRating || 0, p1NewRating)
+                    }
+                });
+                await tx.user.update({
+                    where: { id: p2.id },
+                    data: {
+                        losses: { increment: 1 },
+                        rating: p2NewRating,
+                        maxRating: Math.max(p2.maxRating || 0, p2NewRating)
+                    }
+                });
             } else {
-                if (winnerId === p1.id) {
-                    p1NewRating = p1.rating + 25;
-                    p2NewRating = Math.max(0, p2.rating - 25);
-                    await tx.user.update({ where: { id: p1.id }, data: { wins: { increment: 1 }, rating: p1NewRating } });
-                    await tx.user.update({ where: { id: p2.id }, data: { losses: { increment: 1 }, rating: p2NewRating } });
-                } else {
-                    p2NewRating = p2.rating + 25;
-                    p1NewRating = Math.max(0, p1.rating - 25);
-                    await tx.user.update({ where: { id: p2.id }, data: { wins: { increment: 1 }, rating: p2NewRating } });
-                    await tx.user.update({ where: { id: p1.id }, data: { losses: { increment: 1 }, rating: p1NewRating } });
-                }
+                await tx.user.update({
+                    where: { id: p2.id },
+                    data: {
+                        wins: { increment: 1 },
+                        rating: p2NewRating,
+                        maxRating: Math.max(p2.maxRating || 0, p2NewRating)
+                    }
+                });
+                await tx.user.update({
+                    where: { id: p1.id },
+                    data: {
+                        losses: { increment: 1 },
+                        rating: p1NewRating,
+                        maxRating: Math.max(p1.maxRating || 0, p1NewRating)
+                    }
+                });
             }
 
             const updatedMatch = await tx.match.update({
@@ -147,8 +244,24 @@ class MatchService {
                     [p2.id]: p2Score
                 },
                 ratings: {
-                    [p1.id]: { old: p1.rating, new: p1NewRating, diff: p1NewRating - p1.rating },
-                    [p2.id]: { old: p2.rating, new: p2NewRating, diff: p2NewRating - p2.rating }
+                    [p1.id]: {
+                        old: p1.rating,
+                        new: p1NewRating,
+                        diff: p1NewRating - p1.rating,
+                        expectedProb: Math.round(expectedP1 * 100),
+                        tier: p1Tier,
+                        prevTier: p1PrevTier,
+                        isPromotion: p1Tier.name !== p1PrevTier.name && p1NewRating > p1.rating
+                    },
+                    [p2.id]: {
+                        old: p2.rating,
+                        new: p2NewRating,
+                        diff: p2NewRating - p2.rating,
+                        expectedProb: Math.round(expectedP2 * 100),
+                        tier: p2Tier,
+                        prevTier: p2PrevTier,
+                        isPromotion: p2Tier.name !== p2PrevTier.name && p2NewRating > p2.rating
+                    }
                 }
             };
         });
