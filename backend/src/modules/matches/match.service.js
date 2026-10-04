@@ -68,9 +68,21 @@ class MatchService {
                     winnerId = match.player2Id;
                     loserId = match.player1Id;
                 } else {
-                    isDraw = true;
+                    // Tie-breaker: Player with fewer incorrect submission penalties wins
+                    const p1Penalties = room.penalties?.[match.player1Id] || 0;
+                    const p2Penalties = room.penalties?.[match.player2Id] || 0;
+                    if (p1Penalties < p2Penalties) {
+                        winnerId = match.player1Id;
+                        loserId = match.player2Id;
+                    } else if (p2Penalties < p1Penalties) {
+                        winnerId = match.player2Id;
+                        loserId = match.player1Id;
+                    } else {
+                        isDraw = true;
+                    }
                 }
             } else if (reason === 'FORFEIT' || reason === 'BAIL_OUT') {
+
                 if (!winnerIdFromLua) throw new Error("Winner ID required for forfeit completion");
                 winnerId = winnerIdFromLua;
                 loserId = winnerId === match.player1Id ? match.player2Id : match.player1Id;
@@ -243,7 +255,12 @@ class MatchService {
                     [p1.id]: p1Score,
                     [p2.id]: p2Score
                 },
+                penalties: {
+                    [p1.id]: room.penalties?.[p1.id] || 0,
+                    [p2.id]: room.penalties?.[p2.id] || 0
+                },
                 ratings: {
+
                     [p1.id]: {
                         old: p1.rating,
                         new: p1NewRating,

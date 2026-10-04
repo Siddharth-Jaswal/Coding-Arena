@@ -114,6 +114,66 @@ class UserService {
             } : null
         }));
     }
+
+    async getUserMatches(userId, { limit = 10 } = {}) {
+        const matches = await prisma.match.findMany({
+            where: {
+                OR: [
+                    { player1Id: userId },
+                    { player2Id: userId }
+                ],
+                status: 'FINISHED'
+            },
+            include: {
+                player1: {
+                    select: { id: true, username: true, rating: true, avatar: true, displayName: true }
+                },
+                player2: {
+                    select: { id: true, username: true, rating: true, avatar: true, displayName: true }
+                }
+            },
+            orderBy: {
+                finishedAt: 'desc'
+            },
+            take: limit
+        });
+
+        return matches.map(match => {
+            const isP1 = match.player1Id === userId;
+            const opponent = isP1 ? match.player2 : match.player1;
+            const userScore = isP1 ? match.p1Score : match.p2Score;
+            const opponentScore = isP1 ? match.p2Score : match.p1Score;
+            const oldRating = isP1 ? match.p1OldRating : match.p2OldRating;
+            const newRating = isP1 ? match.p1NewRating : match.p2NewRating;
+            const ratingDiff = (newRating != null && oldRating != null) ? (newRating - oldRating) : null;
+            const isWinner = match.winnerId === userId;
+            const isDraw = !match.winnerId && match.status === 'FINISHED';
+
+            return {
+                id: match.id,
+                roomId: match.roomId,
+                status: match.status,
+                finishReason: match.finishReason,
+                startedAt: match.startedAt,
+                finishedAt: match.finishedAt,
+                isWinner,
+                isDraw,
+                userScore,
+                opponentScore,
+                oldRating,
+                newRating,
+                ratingDiff,
+                opponent: opponent ? {
+                    id: opponent.id,
+                    username: opponent.username,
+                    displayName: opponent.displayName,
+                    rating: opponent.rating,
+                    avatar: opponent.avatar
+                } : null
+            };
+        });
+    }
 }
 
 module.exports = new UserService();
+

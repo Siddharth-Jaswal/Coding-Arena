@@ -63,9 +63,26 @@ const getMySolvedProblems = async (req, res) => {
     }
 };
 
+const getMyMatches = async (req, res) => {
+    try {
+        const limit = parseInt(req.query.limit, 10) || 10;
+        const matches = await userService.getUserMatches(req.user.id, { limit });
+        
+        res.status(200).json({
+            success: true,
+            data: matches
+        });
+    } catch (error) {
+        console.error('Get My Matches Error:', error);
+        res.status(500).json({ success: false, message: 'Internal server error' });
+    }
+};
+
 module.exports = {
     getMe,
     updateProfile,
     getMySubmissions,
-    getMySolvedProblems
+    getMySolvedProblems,
+    getMyMatches
 };
+

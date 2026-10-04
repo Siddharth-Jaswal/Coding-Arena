@@ -34,10 +34,17 @@ end
 
 local userId = ARGV[1]
 local problemId = tostring(ARGV[2])
-local points = tonumber(ARGV[3])
+local verdict = ARGV[3]
+local basePoints = tonumber(ARGV[4]) or 100
 
 if not room.solved then room.solved = {} end
 if not room.solved[userId] then room.solved[userId] = {} end
+if not room.scores then room.scores = {} end
+if not room.penalties then room.penalties = {} end
+if not room.penalties[userId] then room.penalties[userId] = 0 end
+if not room.attempts then room.attempts = {} end
+if not room.attempts[userId] then room.attempts[userId] = {} end
+if not room.attempts[userId][problemId] then room.attempts[userId][problemId] = 0 end
 
 local alreadySolved = false
 if room.solved[userId][problemId] == true then
@@ -45,10 +52,22 @@ if room.solved[userId][problemId] == true then
 end
 
 local awarded = 0
-if not alreadySolved and points > 0 then
-    room.solved[userId][problemId] = true
-    room.scores[userId] = (room.scores[userId] or 0) + points
-    awarded = points
+local penaltyDeduction = 0
+
+if not alreadySolved then
+    if verdict == 'Accepted' then
+        room.solved[userId][problemId] = true
+        local failedAttempts = room.attempts[userId][problemId] or 0
+        -- Time penalty on final score: 5 points deducted per failed attempt prior to Accepted (minimum 50 points)
+        penaltyDeduction = failedAttempts * 5
+        local earnedPoints = math.max(50, basePoints - penaltyDeduction)
+        room.scores[userId] = (room.scores[userId] or 0) + earnedPoints
+        awarded = earnedPoints
+    else
+        -- Incorrect submission prior to Accepted incurs a penalty
+        room.attempts[userId][problemId] = room.attempts[userId][problemId] + 1
+        room.penalties[userId] = room.penalties[userId] + 1
+    end
 end
 
 -- Count unique solved problems for this user
@@ -69,21 +88,24 @@ if solvedCount >= totalRequired then
     winnerId = userId
 end
 
-if awarded > 0 or matchEnded then
-    -- Retain temporarily for 3 hours after finishing
-    local ttl = matchEnded and 10800 or 86400
-    redis.call("SET", KEYS[1], cjson.encode(room), "EX", ttl)
-end
+-- Persist room state
+local ttl = matchEnded and 10800 or 86400
+redis.call("SET", KEYS[1], cjson.encode(room), "EX", ttl)
 
 return cjson.encode({
     alreadySolved = alreadySolved,
     pointsAwarded = awarded,
+    penaltyDeduction = penaltyDeduction,
     newTotalScore = room.scores[userId] or 0,
     solvedCount = solvedCount,
+    penaltyCount = room.penalties[userId] or 0,
+    penalties = room.penalties,
+    attempts = room.attempts[userId] or {},
     matchEnded = matchEnded,
     winnerId = winnerId
 })
 `;
+
 
 // Later down in processing:
 
@@ -182,8 +204,6 @@ const worker = new Worker('judge', async (job) => {
         if (user_id) {
             const roomId = await connection.get(`matchmaking:player:${user_id}`);
             if (roomId) {
-                const pointsToAward = verdict === 'Accepted' ? 100 : 0;
-                
                 // Atomically update the score using Lua script to prevent race conditions and duplicate points
                 const resultStr = await connection.eval(
                     LUA_UPDATE_SCORE, 
@@ -191,7 +211,8 @@ const worker = new Worker('judge', async (job) => {
                     roomId, 
                     user_id, 
                     problem_id, 
-                    pointsToAward
+                    verdict,
+                    100
                 );
                 
                 if (resultStr) {
@@ -205,8 +226,13 @@ const worker = new Worker('judge', async (job) => {
                             problemId: problem_id,
                             verdict,
                             pointsAwarded: result.pointsAwarded,
-                            newTotalScore: result.newTotalScore
+                            penaltyDeduction: result.penaltyDeduction || 0,
+                            newTotalScore: result.newTotalScore,
+                            penaltyCount: result.penaltyCount || 0,
+                            penalties: result.penalties || {},
+                            attempts: result.attempts || {}
                         });
+
                         
                         if (result.matchEnded) {
                             try {

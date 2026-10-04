@@ -97,10 +97,19 @@ class RoomService {
                 [player1.id]: 0,
                 [player2.id]: 0
             },
+            penalties: {
+                [player1.id]: 0,
+                [player2.id]: 0
+            },
+            attempts: {
+                [player1.id]: {},
+                [player2.id]: {}
+            },
             solved: {
                 [player1.id]: {},
                 [player2.id]: {}
             },
+
             status,
             startedAt: null,
             endsAt: null,
