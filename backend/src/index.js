@@ -22,6 +22,7 @@ app.use(cors({
 app.use(express.json());
 
 app.get('/health', (req, res) => {
+    res.set('Access-Control-Allow-Origin', '*');
     res.json({
         status: 'ok',
         service: 'code_arena_api',
@@ -30,6 +31,7 @@ app.get('/health', (req, res) => {
         timestamp: new Date().toISOString()
     });
 });
+
 
 app.use('/api/problems', problemRoutes);
 app.use('/api/auth', authRoutes);

@@ -283,7 +283,10 @@ const WORKER_HTTP_PORT = process.env.WORKER_PORT || (isProd ? (process.env.PORT 
 let healthServer = null;
 if (WORKER_HTTP_PORT) {
     healthServer = http.createServer((req, res) => {
-        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.writeHead(200, { 
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*'
+        });
         res.end(JSON.stringify({
             status: 'ok',
             service: 'code_arena_judge_worker',
@@ -292,6 +295,7 @@ if (WORKER_HTTP_PORT) {
             timestamp: new Date().toISOString()
         }));
     });
+
 
     healthServer.listen(WORKER_HTTP_PORT, () => {
         console.log(`[WORKER] Health check HTTP server listening on port ${WORKER_HTTP_PORT}`);
