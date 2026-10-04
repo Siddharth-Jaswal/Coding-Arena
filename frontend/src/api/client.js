@@ -1,11 +1,19 @@
 import axios from 'axios';
 
+const rawMode = (import.meta.env.VITE_APP_MODE || import.meta.env.MODE || (import.meta.env.PROD ? 'prod' : 'local')).toLowerCase();
+const isProdMode = rawMode === 'prod' || rawMode === 'production';
+
+const resolvedBaseURL = isProdMode
+  ? (import.meta.env.VITE_PROD_API_URL || import.meta.env.VITE_API_URL || '')
+  : (import.meta.env.VITE_LOCAL_API_URL || import.meta.env.VITE_API_URL || 'http://localhost:5000');
+
 const apiClient = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || '',
+  baseURL: resolvedBaseURL,
   headers: {
     'Content-Type': 'application/json',
   },
 });
+
 
 apiClient.interceptors.request.use(
   (config) => {
