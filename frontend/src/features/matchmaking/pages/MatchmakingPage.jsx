@@ -11,7 +11,6 @@ import { QueueCard } from '../components/QueueCard';
 import { QueueTimeline } from '../components/QueueTimeline';
 import { GameModeCard } from '../components/GameModeCard';
 import { MatchmakingRules } from '../components/MatchmakingRules';
-import { ServerStatusCard } from '../components/ServerStatusCard';
 import { RecentMatchesCard } from '../components/RecentMatchesCard';
 import { FutureFeaturesGrid } from '../components/FutureFeaturesGrid';
 import { MatchFoundOverlay } from '../components/MatchFoundOverlay';
@@ -75,17 +74,11 @@ const MatchmakingPage = () => {
           </div>
         </Section>
 
-        {/* Server Status & History */}
+        {/* Match History */}
         <Section className="mt-12">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <div>
-              <ServerStatusCard />
-            </div>
-            <div className="lg:col-span-2">
-              <RecentMatchesCard />
-            </div>
-          </div>
+          <RecentMatchesCard />
         </Section>
+
 
 
         {/* Future Features */}
