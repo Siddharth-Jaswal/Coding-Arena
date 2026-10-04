@@ -1,6 +1,6 @@
 <div align="center">
 
-# ⚔️ CodeArena
+# CodeArena
 ### Real-Time 1v1 Competitive Programming Esports Platform
 
 [![Vite](https://img.shields.io/badge/Vite-5.4-646CFF?style=for-the-badge&logo=vite&logoColor=white)](https://vitejs.dev/)
@@ -16,13 +16,13 @@
   <strong>Transforming algorithmic problem solving from an isolated grind into high-stakes, real-time 1v1 esports duels.</strong>
 </p>
 
-[Explore Features](#-key-features) • [System Architecture](#-system-architecture) • [Contest Lifecycle](#-contest-lifecycle) • [Sandboxed Execution](#-sandboxed-judge-pipeline) • [Quick Start](#-quick-start)
+[Key Features](#key-features) • [System Architecture](#system-architecture) • [Contest Lifecycle](#contest-lifecycle) • [Sandboxed Execution](#sandboxed-judge-pipeline) • [Quick Start](#quick-start)
 
 ---
 
 </div>
 
-## 🌟 Product Overview
+## Product Overview
 
 **CodeArena** is a production-ready, multiplayer competitive programming platform designed for software engineers, competitive coders, and technical interview candidates. 
 
@@ -34,35 +34,35 @@ Unlike traditional platforms where users solve problems in isolation, CodeArena 
 
 ---
 
-## ⚡ Key Features
+## Key Features
 
-### ⚔️ Real-Time 1v1 Duels
+### Real-Time 1v1 Duels
 - **Instant Matchmaking**: Dynamic queue pairing users based on rating and skill brackets.
 - **Toss Match Mode**: Interactive pre-match coin flips determine which player selects the problem category (Arrays, DP, Graphs, etc.), total problem count (1 to 3), and duration per problem.
 - **Atomic Scoring Engine**: Redis Lua scripts ensure race-condition-free scoring, allocating dynamic points based on completion speed while docking penalties for failed attempts.
 
-### 💻 Elite Arena Workspace
+### Elite Arena Workspace
 - **Monaco Editor Integration**: Full syntax highlighting, intelligent indentation, bracket matching, and shortcuts (`Ctrl+Enter` to Submit, `Ctrl+Shift+Enter` to Run, `Ctrl+S` to Test).
 - **Per-Problem State Isolation**: Jump between multiple problems during a match with zero state leakage—code, test outputs, and console logs are strictly preserved per problem.
 - **Collapsible Split Panes**: Drag-and-resize panels for Problem Statement, Code Editor, and Execution Terminal.
 
-### 🛡️ Sandboxed Judge Engine
+### Sandboxed Judge Engine
 - **Isolated Execution**: Custom Dockerized C++ compiler worker isolated from the main web application.
 - **Instant Verdicts**: Detailed feedback on compilation errors, sample tests, runtime limits (`TLE`), memory overflow (`MLE`), and runtime exceptions (`RTE`).
 - **Distributed Queue Architecture**: Submissions are scheduled via BullMQ over Redis, preventing traffic spikes from degrading API responsiveness.
 
-### 📱 Responsive Mobile Experience
+### Responsive Mobile Experience
 - **Adaptive Mobile Workspace**: Replaces squeezed split panes with a seamless segmented 3-tab layout (`Problem`, `Editor`, `Console`).
 - **Mobile Battle View**: Dedicated `Battle` tab to inspect opponent status, live scoreboard, and event feed during mobile matches.
 - **Slide-out Navigation Drawer**: Touch-optimized drawer for profile navigation, matchmaking, and rating overview.
 
-### 🔒 Enterprise Protection & Cold-Start Management
+### Enterprise Protection & Cold-Start Management
 - **Site Access Gatekeeper**: Configurable client-side gate protecting production preview deployments from unauthorized API consumption.
 - **Smart Cloud Warmup Manager**: Background WebSocket & HTTP health check probes that proactively wake sleeping Render free-tier containers without blocking active users.
 
 ---
 
-## 🏗️ System Architecture
+## System Architecture
 
 CodeArena employs a modern, distributed micro-architecture separating the real-time API layer from the heavy, isolated code compilation and evaluation worker.
 
@@ -119,7 +119,7 @@ graph TB
 
 ---
 
-## 🔄 Contest Lifecycle
+## Contest Lifecycle
 
 A CodeArena multiplayer match transitions through a resilient state machine governed by WebSocket events and backend synchronization.
 
@@ -163,7 +163,7 @@ stateDiagram-v2
 
 ---
 
-## ⚡ Sandboxed Judge Pipeline
+## Sandboxed Judge Pipeline
 
 When a player hits **Submit**, the code travels through an asynchronous, distributed execution pipeline designed for reliability and zero main-thread blocking:
 
@@ -210,7 +210,7 @@ sequenceDiagram
 
 ---
 
-## 🧮 Atomic Lua Scoring Algorithm
+## Atomic Lua Scoring Algorithm
 
 To avoid race conditions and double-awarding of points when multiple players submit simultaneously, CodeArena processes all contest scores using an **atomic Redis Lua script**:
 
@@ -221,7 +221,7 @@ To avoid race conditions and double-awarding of points when multiple players sub
 
 ---
 
-## 🛠️ Technology Stack
+## Technology Stack
 
 | Domain | Technology | Purpose |
 |---|---|---|
@@ -238,7 +238,7 @@ To avoid race conditions and double-awarding of points when multiple players sub
 
 ---
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
 - [Node.js](https://nodejs.org/) v18 or higher
@@ -298,7 +298,7 @@ Open [http://localhost:5173](http://localhost:5173) in your browser.
 
 ---
 
-## 🌐 Environment Configuration
+## Environment Configuration
 
 CodeArena supports **Instant Environment Switching** (`mode='prod' | 'local'`) so the frontend and backend can toggle seamlessly between local containers and cloud services:
 
@@ -317,38 +317,3 @@ VITE_LOCAL_WS_URL=http://localhost:5000
 VITE_PROD_API_URL=https://codearena-api.onrender.com
 VITE_PROD_WS_URL=https://codearena-api.onrender.com
 ```
-
----
-
-## 🗺️ Product Roadmap
-
-- [x] **Milestone 1**: Core Problem Bank, Filter & Pagination Engine
-- [x] **Milestone 2**: Monaco-powered Arena Workspace with split-pane layout
-- [x] **Milestone 3**: JWT Authentication, User Profiles, Elo Ratings & Match Statistics
-- [x] **Milestone 4**: Real-time 1v1 Ranked Matchmaking & Toss Coin-Flip Mode
-- [x] **Milestone 5**: Distributed Dockerized Judge Engine with BullMQ & Redis
-- [x] **Milestone 6**: Mobile-responsive segmented navigation & esports live feed
-- [ ] **Milestone 7**: Custom Private Rooms & Spectator Broadcasting
-- [ ] **Milestone 8**: Multi-Language Support (Python 3, Java 21, Rust)
-- [ ] **Milestone 9**: Guilds, Tournaments & Weekly Scheduled Clan Cups
-
----
-
-## 🤝 Contributing
-
-Contributions, issues, and feature suggestions are welcome!
-1. Fork the Project
-2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the Branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
-
----
-
-## 📄 License
-
-Distributed under the MIT License. See `LICENSE` for more information.
-
-<div align="center">
-  <sub>Built with ❤️ by Siddharth Jaswal for competitive programmers worldwide.</sub>
-</div>
