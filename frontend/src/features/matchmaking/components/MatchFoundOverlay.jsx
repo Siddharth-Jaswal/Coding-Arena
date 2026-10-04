@@ -30,10 +30,14 @@ export const MatchFoundOverlay = () => {
     if (isVisible && roomId) {
       // Transition to Contest Room after a dramatic pause
       const timeout = setTimeout(() => {
+        document.body.style.overflow = '';
         navigate(`/contest/${roomId}`);
       }, 3500);
 
-      return () => clearTimeout(timeout);
+      return () => {
+        clearTimeout(timeout);
+        document.body.style.overflow = '';
+      };
     }
   }, [isVisible, roomId, navigate]);
 
