@@ -70,6 +70,10 @@ class MatchService {
                 } else {
                     isDraw = true;
                 }
+            } else if (reason === 'FORFEIT' || reason === 'BAIL_OUT') {
+                if (!winnerIdFromLua) throw new Error("Winner ID required for forfeit completion");
+                winnerId = winnerIdFromLua;
+                loserId = winnerId === match.player1Id ? match.player2Id : match.player1Id;
             }
 
             const p1 = await tx.user.findUnique({ where: { id: match.player1Id } });

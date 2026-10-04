@@ -19,6 +19,9 @@ export const MatchResultModal = ({ room, opponent, user, scores = {}, winnerId, 
 
   const getTitle = () => {
     if (isDraw) return "Match Drawn!";
+    if (matchResult?.reason === 'FORFEIT' || matchResult?.reason === 'BAIL_OUT') {
+      return isWinner ? "Victory! (Opponent Forfeited)" : "Defeat (You Bailed Out)";
+    }
     return isWinner ? "Victory!" : "Defeat";
   };
 
@@ -88,6 +91,9 @@ export const MatchResultModal = ({ room, opponent, user, scores = {}, winnerId, 
             </div>
             {matchResult?.reason === 'TIME_EXPIRED' && (
               <span className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Timeout</span>
+            )}
+            {(matchResult?.reason === 'FORFEIT' || matchResult?.reason === 'BAIL_OUT') && (
+              <span className="text-xs text-rose-400 font-semibold uppercase tracking-wider">Forfeit</span>
             )}
           </div>
           

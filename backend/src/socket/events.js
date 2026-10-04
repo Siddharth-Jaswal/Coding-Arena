@@ -6,6 +6,7 @@ module.exports = {
         JOIN_ROOM: 'JOIN_ROOM',
         READY: 'READY',
         CHOOSE_MATCH_SETTING: 'CHOOSE_MATCH_SETTING',
+        BAIL_OUT: 'BAIL_OUT',
         PING: 'PING'
     },
     // Server -> Client

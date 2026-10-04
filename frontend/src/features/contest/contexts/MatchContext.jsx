@@ -264,6 +264,11 @@ export const MatchProvider = ({ children, roomId }) => {
     socket.emit(CLIENT_EVENTS.CHOOSE_MATCH_SETTING, { roomId, setting, value });
   };
 
+  const bailOut = () => {
+    if (!socket || !roomId) return;
+    socket.emit(CLIENT_EVENTS.BAIL_OUT, { roomId });
+  };
+
   const value = {
     roomId,
     room,
@@ -280,7 +285,8 @@ export const MatchProvider = ({ children, roomId }) => {
     winnerId,
     matchResult,
     setup,
-    chooseSetting
+    chooseSetting,
+    bailOut
   };
 
   return (
