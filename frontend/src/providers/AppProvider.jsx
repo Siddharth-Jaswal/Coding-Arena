@@ -3,6 +3,8 @@ import { useThemeStore } from '../store/useThemeStore';
 import { useEffect } from 'react';
 import { AuthProvider } from '../contexts/AuthContext';
 import { SocketProvider } from '../contexts/SocketContext';
+import { SiteAccessGate } from '../components/common/SiteAccessGate';
+import { ServerWarmupBanner } from '../components/common/ServerWarmupBanner';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -24,13 +26,15 @@ export const AppProvider = ({ children }) => {
   }, [theme]);
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <SocketProvider>
-          {/* Future: ToastProvider placeholder */}
-          {children}
-        </SocketProvider>
-      </AuthProvider>
-    </QueryClientProvider>
+    <SiteAccessGate>
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <SocketProvider>
+            <ServerWarmupBanner />
+            {children}
+          </SocketProvider>
+        </AuthProvider>
+      </QueryClientProvider>
+    </SiteAccessGate>
   );
 };
