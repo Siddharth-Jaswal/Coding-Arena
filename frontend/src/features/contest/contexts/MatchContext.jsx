@@ -30,6 +30,7 @@ export const MatchProvider = ({ children, roomId }) => {
   const [solvedProblemIds, setSolvedProblemIds] = useState([]);
   const [attemptedProblemIds, setAttemptedProblemIds] = useState([]);
   const [winnerId, setWinnerId] = useState(null);
+  const [setup, setSetup] = useState(storeMetadata?.setup || null);
 
   // Emit JOIN_ROOM when socket connects
   useEffect(() => {
@@ -46,6 +47,7 @@ export const MatchProvider = ({ children, roomId }) => {
       if (payload.room) {
         setRoom(payload.room);
         setStatus(payload.room.status);
+        if (payload.room.setup) setSetup(payload.room.setup);
         setScores(payload.room.scores || {});
         if (payload.room.endsAt) setEndsAt(payload.room.endsAt);
         if (payload.room.winner) setWinnerId(payload.room.winner);
@@ -79,6 +81,64 @@ export const MatchProvider = ({ children, roomId }) => {
       socket.emit(CLIENT_EVENTS.READY, { roomId });
     };
 
+    const handleMatchSetupStarted = (payload) => {
+      setStatus('setup');
+      if (payload.setup) setSetup(payload.setup);
+      setEvents(prev => [...prev, {
+        type: 'system',
+        message: 'Match setup phase started! Rolling dice for match settings.',
+        timestamp: Date.now()
+      }]);
+    };
+
+    const handleMatchSettingChosen = (payload) => {
+      setSetup(prev => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          choices: payload.choices || {
+            ...prev.choices,
+            [payload.setting]: payload.value
+          }
+        };
+      });
+
+      const isMe = payload.chosenBy === user?.id;
+      const chooserName = isMe ? 'You' : (opponent?.username || 'Opponent');
+      const settingLabels = {
+        topic: 'Topic',
+        questionCount: 'Question Count',
+        timePerQuestion: 'Time per Question'
+      };
+      const formattedVal = payload.setting === 'timePerQuestion' ? `${payload.value} min` : payload.value;
+
+      setEvents(prev => [...prev, {
+        type: 'system',
+        message: `${chooserName} chose ${settingLabels[payload.setting] || payload.setting}: ${formattedVal}`,
+        timestamp: Date.now()
+      }]);
+    };
+
+    const handleMatchSetupCompleted = (payload) => {
+      if (payload.problems?.length > 0) {
+        setRoom(prev => ({
+          ...prev,
+          problems: payload.problems,
+          totalQuestions: payload.totalQuestions,
+          durationSeconds: payload.durationSeconds
+        }));
+        setActiveProblemId(payload.problems[0].id);
+      }
+      if (payload.setup) {
+        setSetup(payload.setup);
+      }
+      setEvents(prev => [...prev, {
+        type: 'system',
+        message: 'All settings locked in! Generating contest arena...',
+        timestamp: Date.now()
+      }]);
+    };
+
     const handleCountdownStarted = (payload) => {
       setStatus('countdown');
       setCountdownSeconds(payload.startsInSeconds || 3);
@@ -92,6 +152,14 @@ export const MatchProvider = ({ children, roomId }) => {
     const handleContestStarted = (payload) => {
       setStatus('running');
       setCountdownSeconds(null);
+      if (payload.problems?.length > 0) {
+        setRoom(prev => ({
+          ...prev,
+          problems: payload.problems,
+          totalQuestions: payload.problems.length
+        }));
+        setActiveProblemId(payload.problems[0].id);
+      }
       setEndsAt(payload.endsAt || new Date(Date.now() + (payload.durationSeconds * 1000)).toISOString());
       setEvents(prev => [...prev, {
         type: 'system',
@@ -167,6 +235,9 @@ export const MatchProvider = ({ children, roomId }) => {
     };
 
     socket.on(SERVER_EVENTS.ROOM_JOINED, handleRoomJoined);
+    socket.on(SERVER_EVENTS.MATCH_SETUP_STARTED, handleMatchSetupStarted);
+    socket.on(SERVER_EVENTS.MATCH_SETTING_CHOSEN, handleMatchSettingChosen);
+    socket.on(SERVER_EVENTS.MATCH_SETUP_COMPLETED, handleMatchSetupCompleted);
     socket.on(SERVER_EVENTS.COUNTDOWN_STARTED, handleCountdownStarted);
     socket.on(SERVER_EVENTS.CONTEST_STARTED, handleContestStarted);
     socket.on(SERVER_EVENTS.SCORE_UPDATED, handleScoreUpdated);
@@ -176,6 +247,9 @@ export const MatchProvider = ({ children, roomId }) => {
 
     return () => {
       socket.off(SERVER_EVENTS.ROOM_JOINED, handleRoomJoined);
+      socket.off(SERVER_EVENTS.MATCH_SETUP_STARTED, handleMatchSetupStarted);
+      socket.off(SERVER_EVENTS.MATCH_SETTING_CHOSEN, handleMatchSettingChosen);
+      socket.off(SERVER_EVENTS.MATCH_SETUP_COMPLETED, handleMatchSetupCompleted);
       socket.off(SERVER_EVENTS.COUNTDOWN_STARTED, handleCountdownStarted);
       socket.off(SERVER_EVENTS.CONTEST_STARTED, handleContestStarted);
       socket.off(SERVER_EVENTS.SCORE_UPDATED, handleScoreUpdated);
@@ -184,6 +258,11 @@ export const MatchProvider = ({ children, roomId }) => {
       socket.off(SERVER_EVENTS.PLAYER_RECONNECTED, handlePlayerReconnected);
     };
   }, [socket, isConnected, roomId, opponent?.id, opponent?.username, user?.id, activeProblemId]);
+
+  const chooseSetting = (setting, value) => {
+    if (!socket || !roomId) return;
+    socket.emit(CLIENT_EVENTS.CHOOSE_MATCH_SETTING, { roomId, setting, value });
+  };
 
   const value = {
     roomId,
@@ -199,7 +278,9 @@ export const MatchProvider = ({ children, roomId }) => {
     solvedProblemIds,
     attemptedProblemIds,
     winnerId,
-    matchResult
+    matchResult,
+    setup,
+    chooseSetting
   };
 
   return (

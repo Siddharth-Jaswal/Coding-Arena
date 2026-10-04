@@ -14,6 +14,7 @@ import { problemApi } from '@/api/problems';
 import { WorkspaceProvider } from '@/features/workspace/contexts/WorkspaceContext';
 import { CountdownOverlay } from '../components/CountdownOverlay';
 import { MatchResultModal } from '../components/MatchResultModal';
+import { PreMatchSetup } from '../components/PreMatchSetup';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useMatchmakingStore } from '@/features/matchmaking/store/useMatchmakingStore';
 
@@ -88,6 +89,10 @@ const ContestRoom = () => {
         Loading contest data...
       </div>
     );
+  }
+
+  if (status === 'setup') {
+    return <PreMatchSetup />;
   }
 
   return (
