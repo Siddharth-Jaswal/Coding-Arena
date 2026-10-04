@@ -1,94 +1,142 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CloudLightning, CheckCircle2, Loader2 } from 'lucide-react';
+import { CloudLightning, CheckCircle2, Loader2, X } from 'lucide-react';
+import { useSocket } from '@/contexts/SocketContext';
 
 export const ServerWarmupBanner = () => {
   const [status, setStatus] = useState('idle'); // 'idle' | 'waking' | 'ready' | 'dismissed'
-  const [servicesStatus, setServicesStatus] = useState({ api: 'checking', worker: 'checking' });
   const hasMounted = useRef(false);
+  const { isConnected } = useSocket() || {};
 
+  const isLocalhost = typeof window !== 'undefined' && 
+    (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+
+  // Detect whether we are in production
   const rawMode = (import.meta.env.VITE_APP_MODE || import.meta.env.MODE || (import.meta.env.PROD ? 'prod' : 'local')).toLowerCase();
-  const isProdMode = rawMode === 'prod' || rawMode === 'production';
+  const isProd = !isLocalhost || rawMode === 'prod' || rawMode === 'production';
 
-  const apiBase = isProdMode 
+  const rawApiBase = isProd 
     ? (import.meta.env.VITE_PROD_API_URL || import.meta.env.VITE_API_URL || '')
     : (import.meta.env.VITE_LOCAL_API_URL || import.meta.env.VITE_API_URL || 'http://localhost:5000');
 
-  const workerBase = isProdMode 
+  const rawWorkerBase = isProd 
     ? (import.meta.env.VITE_PROD_WORKER_URL || import.meta.env.VITE_WORKER_URL || '')
     : (import.meta.env.VITE_LOCAL_WORKER_URL || import.meta.env.VITE_WORKER_URL || '');
+
+  const apiBase = rawApiBase ? rawApiBase.replace(/\/+$/, '') : '';
+  const workerBase = rawWorkerBase ? rawWorkerBase.replace(/\/+$/, '') : '';
+
+  // Check if user already dismissed this session
+  useEffect(() => {
+    try {
+      if (sessionStorage.getItem('warmup_banner_dismissed') === 'true') {
+        setStatus('dismissed');
+      }
+    } catch {
+      // Ignore sessionStorage issues
+    }
+  }, []);
+
+  // If Socket is connected, the backend server is 100% awake and reachable!
+  useEffect(() => {
+    if (isConnected && status !== 'dismissed') {
+      setStatus((prev) => {
+        if (prev === 'waking') {
+          setTimeout(() => setStatus('dismissed'), 2000);
+          return 'ready';
+        }
+        return 'dismissed';
+      });
+    }
+  }, [isConnected, status]);
+
+  const handleDismiss = () => {
+    try {
+      sessionStorage.setItem('warmup_banner_dismissed', 'true');
+    } catch {
+      // Ignore
+    }
+    setStatus('dismissed');
+  };
 
   useEffect(() => {
     if (hasMounted.current) return;
     hasMounted.current = true;
 
+    // Do not run warmup checks if on localhost
+    if (isLocalhost && !isProd) {
+      setStatus('dismissed');
+      return;
+    }
+
     let isSubscribed = true;
     let timer = null;
     let wakeTimer = null;
 
-    // If initial ping takes longer than 2.2 seconds, Render is spinning up
+    // Only display "waking" banner if server takes longer than 2.5 seconds to respond
     wakeTimer = setTimeout(() => {
-      if (isSubscribed && status === 'idle') {
+      if (isSubscribed && status === 'idle' && !isConnected) {
         setStatus('waking');
       }
-    }, 2200);
+    }, 2500);
 
     const pingServices = async () => {
-      let apiOk = false;
-      let workerOk = !workerBase; // true if no worker URL configured
-
-      // 1. Ping API
-      try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 6000);
-        const res = await fetch(`${apiBase}/health`, { 
-          method: 'GET',
-          signal: controller.signal 
-        });
-        clearTimeout(timeoutId);
-        if (res.ok) apiOk = true;
-      } catch (e) {
-        apiOk = false;
+      // If socket already connected, dismiss immediately
+      if (isConnected) {
+        if (isSubscribed) setStatus('dismissed');
+        return;
       }
 
-      // 2. Ping Worker if URL provided
-      if (workerBase) {
+      let apiOk = false;
+
+      // 1. Ping API health check
+      if (apiBase) {
         try {
           const controller = new AbortController();
           const timeoutId = setTimeout(() => controller.abort(), 6000);
-          const res = await fetch(`${workerBase}/`, { 
+          const res = await fetch(`${apiBase}/health`, { 
             method: 'GET',
+            mode: 'cors',
             signal: controller.signal 
           });
           clearTimeout(timeoutId);
-          if (res.ok) workerOk = true;
-        } catch (e) {
-          workerOk = false;
+          if (res.ok) apiOk = true;
+        } catch {
+          apiOk = false;
+        }
+      } else {
+        // No explicit API base URL configured, assume online
+        apiOk = true;
+      }
+
+      // 2. Wake worker in background if URL configured (fire-and-forget, non-blocking)
+      if (workerBase) {
+        try {
+          const workerController = new AbortController();
+          const workerTimeout = setTimeout(() => workerController.abort(), 5000);
+          fetch(`${workerBase}/`, { method: 'GET', signal: workerController.signal })
+            .finally(() => clearTimeout(workerTimeout));
+        } catch {
+          // Non-blocking
         }
       }
 
       if (!isSubscribed) return;
 
-      setServicesStatus({
-        api: apiOk ? 'ready' : 'waking',
-        worker: workerOk ? 'ready' : 'waking'
-      });
-
-      if (apiOk && workerOk) {
+      if (apiOk) {
         clearTimeout(wakeTimer);
         setStatus((prev) => {
           if (prev === 'waking') {
-            // Show ready badge briefly before dismiss
             setTimeout(() => {
               if (isSubscribed) setStatus('dismissed');
-            }, 3500);
+            }, 2500);
             return 'ready';
           }
           return 'dismissed';
         });
       } else {
-        // Keep retrying while servers are warming up
-        setStatus('waking');
+        // Server still sleeping, keep retrying
+        setStatus((prev) => (prev === 'dismissed' ? 'dismissed' : 'waking'));
         timer = setTimeout(pingServices, 4000);
       }
     };
@@ -100,7 +148,7 @@ export const ServerWarmupBanner = () => {
       clearTimeout(timer);
       clearTimeout(wakeTimer);
     };
-  }, [apiBase, workerBase]);
+  }, [apiBase, workerBase, isLocalhost, isProd, isConnected]);
 
   if (status === 'idle' || status === 'dismissed') return null;
 
@@ -111,9 +159,9 @@ export const ServerWarmupBanner = () => {
         animate={{ opacity: 1, y: 0, scale: 1 }}
         exit={{ opacity: 0, y: 20, scale: 0.95 }}
         transition={{ type: 'spring', damping: 20, stiffness: 300 }}
-        className="fixed bottom-5 right-5 z-[999] max-w-sm"
+        className="fixed bottom-5 right-5 sm:bottom-6 sm:right-6 z-[999] max-w-sm w-[calc(100vw-2.5rem)] sm:w-auto"
       >
-        <div className="bg-card/90 backdrop-blur-xl border border-border/80 shadow-2xl rounded-2xl p-4 flex items-start gap-3">
+        <div className="bg-card/95 backdrop-blur-xl border border-border/80 shadow-2xl rounded-2xl p-3.5 sm:p-4 flex items-start gap-3">
           <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
             status === 'ready' 
               ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30' 
@@ -131,27 +179,25 @@ export const ServerWarmupBanner = () => {
               <h4 className="text-xs font-bold text-foreground">
                 {status === 'ready' ? 'Cloud Services Online' : 'Waking Up Cloud Services'}
               </h4>
-              {status === 'waking' && (
-                <Loader2 size={13} className="text-amber-400 animate-spin shrink-0" />
-              )}
+              <div className="flex items-center gap-1.5 shrink-0">
+                {status === 'waking' && (
+                  <Loader2 size={13} className="text-amber-400 animate-spin" />
+                )}
+                <button
+                  onClick={handleDismiss}
+                  className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-white/10 transition-colors"
+                  title="Dismiss"
+                >
+                  <X size={13} />
+                </button>
+              </div>
             </div>
 
             <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">
               {status === 'ready' 
                 ? 'All servers are awake and connected.'
-                : 'Render free tier spins down on idle. Warming up API & judge worker (~30s)...'}
+                : 'Render free tier spins down on idle. Warming up API (~30s)...'}
             </p>
-
-            {status === 'waking' && workerBase && (
-              <div className="flex items-center gap-3 mt-2 text-[10px] font-mono">
-                <span className={servicesStatus.api === 'ready' ? 'text-emerald-400' : 'text-amber-400'}>
-                  API: {servicesStatus.api === 'ready' ? '● Ready' : '○ Waking...'}
-                </span>
-                <span className={servicesStatus.worker === 'ready' ? 'text-emerald-400' : 'text-amber-400'}>
-                  Worker: {servicesStatus.worker === 'ready' ? '● Ready' : '○ Waking...'}
-                </span>
-              </div>
-            )}
           </div>
         </div>
       </motion.div>

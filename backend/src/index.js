@@ -16,12 +16,15 @@ const server = http.createServer(app);
 
 const PORT = config.port;
 
-app.use(cors({
-    origin: config.allowedOrigins
-}));
-app.use(express.json());
+// Public Health Check endpoints (placed before restricted CORS so any origin/probe can ping)
+app.options(['/health', '/api/health'], (req, res) => {
+    res.set('Access-Control-Allow-Origin', '*');
+    res.set('Access-Control-Allow-Methods', 'GET, OPTIONS');
+    res.set('Access-Control-Allow-Headers', '*');
+    res.sendStatus(204);
+});
 
-app.get('/health', (req, res) => {
+const handleHealthCheck = (req, res) => {
     res.set('Access-Control-Allow-Origin', '*');
     res.json({
         status: 'ok',
@@ -30,7 +33,15 @@ app.get('/health', (req, res) => {
         uptime: process.uptime(),
         timestamp: new Date().toISOString()
     });
-});
+};
+
+app.get('/health', handleHealthCheck);
+app.get('/api/health', handleHealthCheck);
+
+app.use(cors({
+    origin: config.allowedOrigins
+}));
+app.use(express.json());
 
 
 app.use('/api/problems', problemRoutes);
