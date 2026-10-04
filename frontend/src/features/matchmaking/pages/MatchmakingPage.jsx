@@ -56,7 +56,7 @@ const MatchmakingPage = () => {
                 status={status} 
                 elapsedTime={elapsedTime} 
                 estimatedTime={estimatedTime}
-                onFindMatch={findMatch}
+                onFindMatch={() => findMatch(selectedMode)}
                 onCancel={cancelSearch}
               />
               

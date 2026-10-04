@@ -55,14 +55,14 @@ export const useMatchmakingSocket = () => {
   }, [socket, isConnected, store]);
 
   // Expose callbacks for the UI to trigger
-  const findMatch = useCallback(() => {
+  const findMatch = useCallback((mode = 'ranked') => {
     if (!socket || !isConnected) {
       store.setError('Not connected to server');
       return;
     }
     const attemptId = crypto.randomUUID();
-    store.setJoining(attemptId);
-    socket.emit(CLIENT_EVENTS.JOIN_QUEUE, { attemptId });
+    store.setJoining(attemptId, mode);
+    socket.emit(CLIENT_EVENTS.JOIN_QUEUE, { attemptId, mode });
   }, [socket, isConnected, store]);
 
   const cancelSearch = useCallback(() => {

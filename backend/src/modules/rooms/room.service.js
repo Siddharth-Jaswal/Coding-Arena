@@ -5,50 +5,51 @@ const { SERVER_EVENTS } = require('../../socket/events');
 const matchService = require('../matches/match.service');
 
 class RoomService {
-    async createRoom(io, player1, player2) {
+    async createRoom(io, player1, player2, mode = 'ranked') {
         const roomId = `room:${uuidv4()}`;
+        const isTossMode = mode === 'toss';
 
-        // Roll 3 independent dice pairs for: topic, question count, and time per question
-        const rollDicePair = (p1Id, p2Id) => {
-            let p1Roll, p2Roll;
-            do {
-                p1Roll = Math.floor(Math.random() * 6) + 1;
-                p2Roll = Math.floor(Math.random() * 6) + 1;
-            } while (p1Roll === p2Roll); // ensure a decisive winner
-            return {
-                winnerId: p1Roll > p2Roll ? p1Id : p2Id,
-                p1Roll,
-                p2Roll
+        let setup = null;
+        let selectedProblems = [];
+        let totalQuestions = 0;
+        let durationSeconds = 0;
+        let timePerQuestion = 0;
+        let status = 'waiting';
+
+        if (isTossMode) {
+            // Toss Mode: 3 independent coin flips for topic, question count, and time per question
+            const flipCoin = (p1Id, p2Id) => {
+                const isHeads = Math.random() < 0.5;
+                return {
+                    winnerId: isHeads ? p1Id : p2Id,
+                    outcome: isHeads ? 'HEADS' : 'TAILS',
+                    p1Choice: 'HEADS',
+                    p2Choice: 'TAILS'
+                };
             };
-        };
 
-        const rolls = {
-            topic: rollDicePair(player1.id, player2.id),
-            questionCount: rollDicePair(player1.id, player2.id),
-            timePerQuestion: rollDicePair(player1.id, player2.id)
-        };
+            const coinFlips = {
+                topic: flipCoin(player1.id, player2.id),
+                questionCount: flipCoin(player1.id, player2.id),
+                timePerQuestion: flipCoin(player1.id, player2.id)
+            };
 
-        const availableTopics = [
-            { id: 'arrays', label: 'Arrays', description: 'Two pointers, sliding window, manipulation' },
-            { id: 'strings', label: 'Strings', description: 'Parsing, substrings, palindromes' },
-            { id: 'dynamic-programming', label: 'Dynamic Programming', description: 'Memoization, tabulation, subproblems' },
-            { id: 'graphs', label: 'Graphs', description: 'BFS, DFS, shortest path' },
-            { id: 'greedy', label: 'Greedy', description: 'Optimal choice, intervals, sorting' },
-            { id: 'binary-search', label: 'Binary Search', description: 'Divide & conquer, search space' },
-            { id: 'two-pointers', label: 'Two Pointers', description: 'Sorted arrays, pairs, fast & slow' },
-            { id: 'stack-queue', label: 'Stack & Queue', description: 'Monotonic stack, FIFO/LIFO' },
-            { id: 'linked-list', label: 'Linked List', description: 'Pointers, cycles, reversals' },
-            { id: 'trees', label: 'Trees', description: 'Traversals, BST, depth' }
-        ];
+            const availableTopics = [
+                { id: 'arrays', label: 'Arrays', description: 'Two pointers, sliding window, manipulation' },
+                { id: 'strings', label: 'Strings', description: 'Parsing, substrings, palindromes' },
+                { id: 'dynamic-programming', label: 'Dynamic Programming', description: 'Memoization, tabulation, subproblems' },
+                { id: 'graphs', label: 'Graphs', description: 'BFS, DFS, shortest path' },
+                { id: 'greedy', label: 'Greedy', description: 'Optimal choice, intervals, sorting' },
+                { id: 'binary-search', label: 'Binary Search', description: 'Divide & conquer, search space' },
+                { id: 'two-pointers', label: 'Two Pointers', description: 'Sorted arrays, pairs, fast & slow' },
+                { id: 'stack-queue', label: 'Stack & Queue', description: 'Monotonic stack, FIFO/LIFO' },
+                { id: 'linked-list', label: 'Linked List', description: 'Pointers, cycles, reversals' },
+                { id: 'trees', label: 'Trees', description: 'Traversals, BST, depth' }
+            ];
 
-        const roomState = {
-            roomId,
-            players: {
-                [player1.id]: { username: player1.username || 'Player 1', rating: player1.rating, ready: false, disconnected: false },
-                [player2.id]: { username: player2.username || 'Player 2', rating: player2.rating, ready: false, disconnected: false }
-            },
-            setup: {
-                rolls,
+            setup = {
+                coinFlips,
+                rolls: coinFlips, // alias for backwards compatibility
                 choices: {
                     topic: null,
                     questionCount: null,
@@ -57,11 +58,41 @@ class RoomService {
                 availableTopics,
                 availableQuestionCounts: [1, 2, 3],
                 availableTimesPerQuestion: [10, 15, 20, 25, 30] // minutes
+            };
+
+            status = 'setup';
+        } else {
+            // Ranked Battle: 1 random question by default with 20 minutes solving time
+            const allProblems = await prisma.problems.findMany({
+                select: { id: true, title: true, difficulty: true },
+                take: 50
+            });
+            const randomProblem = allProblems[Math.floor(Math.random() * allProblems.length)];
+            if (randomProblem) {
+                selectedProblems = [{
+                    id: randomProblem.id.toString(),
+                    title: randomProblem.title,
+                    difficulty: randomProblem.difficulty
+                }];
+            }
+            totalQuestions = 1;
+            timePerQuestion = 20;
+            durationSeconds = 20 * 60; // 20 minutes = 1200 seconds
+            status = 'countdown';
+        }
+
+        const roomState = {
+            roomId,
+            mode: isTossMode ? 'toss' : 'ranked',
+            players: {
+                [player1.id]: { username: player1.username || 'Player 1', rating: player1.rating, ready: false, disconnected: false },
+                [player2.id]: { username: player2.username || 'Player 2', rating: player2.rating, ready: false, disconnected: false }
             },
-            problems: [],
-            totalQuestions: 0,
-            durationSeconds: 0,
-            timePerQuestion: 0,
+            setup,
+            problems: selectedProblems,
+            totalQuestions,
+            durationSeconds,
+            timePerQuestion,
             scores: {
                 [player1.id]: 0,
                 [player2.id]: 0
@@ -70,18 +101,17 @@ class RoomService {
                 [player1.id]: {},
                 [player2.id]: {}
             },
-            status: 'setup',
+            status,
             startedAt: null,
             endsAt: null,
             winner: null
         };
 
-        // Create Match in DB first (requirement)
+        // Create Match in DB first
         try {
             await matchService.createMatch(roomId, player1.id, player2.id);
         } catch (error) {
             console.error("Failed to create match in database:", error);
-            // Abort room creation if DB creation fails
             if (player1.socketId) io.to(player1.socketId).emit('ERROR', { message: "Failed to initialize match" });
             if (player2.socketId) io.to(player2.socketId).emit('ERROR', { message: "Failed to initialize match" });
             return;
@@ -94,27 +124,74 @@ class RoomService {
         multi.set(`matchmaking:player:${player2.id}`, roomId, 'EX', 10800);
         await multi.exec();
 
-        // Broadcast MATCH_FOUND, ROOM_CREATED, and MATCH_SETUP_STARTED to specific sockets
+        // Broadcast MATCH_FOUND and ROOM_CREATED to specific sockets
         const roomPayload = roomState;
 
         if (player1.socketId) {
             io.to(player1.socketId).emit(SERVER_EVENTS.MATCH_FOUND, {
                 roomId,
                 attemptId: player1.attemptId,
-                opponent: { id: player2.id, username: player2.username || 'Player 2', rating: player2.rating }
+                opponent: { id: player2.id, username: player2.username || 'Player 2', rating: player2.rating },
+                mode: roomState.mode
             });
             io.to(player1.socketId).emit(SERVER_EVENTS.ROOM_CREATED, { ...roomPayload, attemptId: player1.attemptId });
-            io.to(player1.socketId).emit(SERVER_EVENTS.MATCH_SETUP_STARTED, { roomId, setup: roomPayload.setup });
+            if (isTossMode) {
+                io.to(player1.socketId).emit(SERVER_EVENTS.MATCH_SETUP_STARTED, { roomId, setup: roomPayload.setup });
+            }
         }
 
         if (player2.socketId) {
             io.to(player2.socketId).emit(SERVER_EVENTS.MATCH_FOUND, {
                 roomId,
                 attemptId: player2.attemptId,
-                opponent: { id: player1.id, username: player1.username || 'Player 1', rating: player1.rating }
+                opponent: { id: player1.id, username: player1.username || 'Player 1', rating: player1.rating },
+                mode: roomState.mode
             });
             io.to(player2.socketId).emit(SERVER_EVENTS.ROOM_CREATED, { ...roomPayload, attemptId: player2.attemptId });
-            io.to(player2.socketId).emit(SERVER_EVENTS.MATCH_SETUP_STARTED, { roomId, setup: roomPayload.setup });
+            if (isTossMode) {
+                io.to(player2.socketId).emit(SERVER_EVENTS.MATCH_SETUP_STARTED, { roomId, setup: roomPayload.setup });
+            }
+        }
+
+        // If Ranked mode, immediately kick off countdown to match start
+        if (!isTossMode) {
+            setTimeout(() => {
+                io.to(roomId).emit(SERVER_EVENTS.COUNTDOWN_STARTED, { startsInSeconds: 5 });
+
+                setTimeout(async () => {
+                    const refreshedRoomStr = await redisClient.get(roomId);
+                    if (!refreshedRoomStr) return;
+                    const refreshedRoom = JSON.parse(refreshedRoomStr);
+
+                    if (refreshedRoom.status === 'finished') return;
+
+                    refreshedRoom.status = 'running';
+                    refreshedRoom.startedAt = new Date().toISOString();
+                    refreshedRoom.endsAt = new Date(Date.now() + durationSeconds * 1000).toISOString();
+
+                    await redisClient.set(roomId, JSON.stringify(refreshedRoom), 'EX', 86400);
+
+                    io.to(roomId).emit(SERVER_EVENTS.CONTEST_STARTED, {
+                        startedAt: refreshedRoom.startedAt,
+                        durationSeconds,
+                        endsAt: refreshedRoom.endsAt,
+                        problems: refreshedRoom.problems
+                    });
+
+                    // Timeout finalizer after 20 minutes
+                    setTimeout(async () => {
+                        try {
+                            const finalResult = await matchService.finalizeMatch(roomId, null, 'TIME_EXPIRED');
+                            if (finalResult) {
+                                io.to(roomId).emit(SERVER_EVENTS.MATCH_FINISHED, finalResult);
+                            }
+                        } catch (err) {
+                            console.error('Error during timeout match finalization:', err);
+                        }
+                    }, durationSeconds * 1000);
+
+                }, 5000);
+            }, 1000);
         }
     }
 
@@ -351,6 +428,34 @@ class RoomService {
             }, durationSeconds * 1000);
 
         }, 5000);
+    }
+
+    async handleBailOut(io, socket, roomId) {
+        if (!roomId) return;
+        const roomData = await redisClient.get(roomId);
+        if (!roomData) return;
+
+        const room = JSON.parse(roomData);
+        if (room.status === 'finished') return;
+
+        const bailedUserId = socket.user.id;
+        const playerIds = Object.keys(room.players || {});
+        const opponentId = playerIds.find(id => id !== bailedUserId);
+        if (!opponentId) return;
+
+        room.status = 'finished';
+        room.winner = opponentId;
+        room.finishReason = 'FORFEIT';
+        await redisClient.set(roomId, JSON.stringify(room), 'EX', 10800);
+
+        try {
+            const finalResult = await matchService.finalizeMatch(roomId, opponentId, 'FORFEIT');
+            if (finalResult) {
+                io.to(roomId).emit(SERVER_EVENTS.MATCH_FINISHED, finalResult);
+            }
+        } catch (error) {
+            console.error('Error during bail out match finalization:', error);
+        }
     }
 
     async handleReconnect(io, socket, userId) {

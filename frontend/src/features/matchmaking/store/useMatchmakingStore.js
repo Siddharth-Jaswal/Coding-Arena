@@ -8,15 +8,18 @@ export const useMatchmakingStore = create((set, get) => ({
   timerInterval: null,
   
   // Contest Metadata
+  mode: 'ranked',
   roomId: null,
   opponent: null,
   contestMetadata: null,
   attemptId: null,
   error: null,
 
+  setMode: (mode) => set({ mode }),
+
   // UI Only Actions (The actual socket emission is handled by the hook)
-  setJoining: (attemptId) => {
-    set({ status: MATCHMAKING_STATES.JOINING, attemptId, error: null });
+  setJoining: (attemptId, mode = 'ranked') => {
+    set({ status: MATCHMAKING_STATES.JOINING, attemptId, mode, error: null });
   },
 
   setQueued: () => {

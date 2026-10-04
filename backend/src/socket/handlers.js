@@ -10,8 +10,9 @@ const registerHandlers = (io, socket) => {
 
     socket.on(CLIENT_EVENTS.JOIN_QUEUE, async (payload = {}) => {
         try {
-            await matchmakingService.joinQueue(socket.user.id, socket.id, socket.user.rating, payload.attemptId);
-            socket.emit(SERVER_EVENTS.QUEUE_JOINED, { success: true, attemptId: payload.attemptId });
+            const mode = payload.mode || 'ranked';
+            await matchmakingService.joinQueue(socket.user.id, socket.id, socket.user.rating, payload.attemptId, mode);
+            socket.emit(SERVER_EVENTS.QUEUE_JOINED, { success: true, attemptId: payload.attemptId, mode });
             // Attempt match immediately
             await matchmakingService.attemptMatch(io);
         } catch (error) {
@@ -47,6 +48,14 @@ const registerHandlers = (io, socket) => {
     socket.on(CLIENT_EVENTS.CHOOSE_MATCH_SETTING, async (payload) => {
         try {
             await roomService.handleChooseSetting(io, socket, payload);
+        } catch (error) {
+            socket.emit(SERVER_EVENTS.ERROR, { message: error.message });
+        }
+    });
+
+    socket.on(CLIENT_EVENTS.BAIL_OUT, async (payload = {}) => {
+        try {
+            await roomService.handleBailOut(io, socket, payload.roomId);
         } catch (error) {
             socket.emit(SERVER_EVENTS.ERROR, { message: error.message });
         }
