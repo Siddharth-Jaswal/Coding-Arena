@@ -1,11 +1,11 @@
-require('dotenv').config({ path: __dirname + '/../../.env' });
+const config = require('../config');
 const { Worker } = require('bullmq');
 const pool = require('../config/db');
 const judgeEngine = require('../judge/JudgeEngine');
-const config = require('../config');
 
-// Setup Redis connection config
+// Setup Redis connection config based on current mode
 const redisUrl = config.redisUrl;
+
 
 const connection = new (require('ioredis'))(redisUrl, {
     maxRetriesPerRequest: null,
