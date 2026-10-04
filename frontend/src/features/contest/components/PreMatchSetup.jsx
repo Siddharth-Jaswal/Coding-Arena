@@ -1,7 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  Dices, 
   Sparkles, 
   Clock, 
   HelpCircle, 
@@ -12,37 +11,53 @@ import {
   Award,
   Layers,
   ArrowRight,
-  ShieldAlert
+  ShieldAlert,
+  Coins,
+  Flag,
+  AlertTriangle
 } from 'lucide-react';
 import { useMatchContext } from '../contexts/MatchContext';
 import { useAuth } from '@/contexts/AuthContext';
 
-// Helper component for visual dice representation
-const DiceFace = ({ value, isWinner }) => {
+// Animated Coin Component
+const CoinDisplay = ({ outcome, isWinner, label }) => {
+  const isHeads = outcome === 'HEADS';
+
   return (
-    <motion.div
-      initial={{ rotate: -180, scale: 0.5, opacity: 0 }}
-      animate={{ rotate: 0, scale: 1, opacity: 1 }}
-      transition={{ type: 'spring', damping: 15, stiffness: 200 }}
-      className={`relative w-12 h-12 rounded-xl flex items-center justify-center font-black text-xl shadow-lg border ${
-        isWinner 
-          ? 'bg-gradient-to-br from-amber-400 to-amber-600 text-black border-amber-300 shadow-amber-500/20' 
-          : 'bg-[#181824] text-neutral-400 border-white/10'
-      }`}
-    >
-      <span className="font-mono tracking-tighter">{value}</span>
-      {isWinner && (
-        <span className="absolute -top-1.5 -right-1.5 w-3.5 h-3.5 bg-emerald-400 rounded-full border-2 border-black" />
-      )}
-    </motion.div>
+    <div className="flex flex-col items-center gap-1.5">
+      <motion.div
+        initial={{ rotateY: 0, scale: 0.8 }}
+        animate={{ rotateY: [0, 1800, 3600], scale: 1 }}
+        transition={{ duration: 1.2, ease: 'easeOut' }}
+        className={`relative w-14 h-14 rounded-full flex items-center justify-center font-black shadow-xl border-2 select-none ${
+          isWinner 
+            ? 'bg-gradient-to-tr from-amber-500 via-yellow-300 to-amber-600 text-amber-950 border-amber-200 shadow-amber-500/30' 
+            : 'bg-gradient-to-tr from-neutral-700 via-neutral-500 to-neutral-800 text-neutral-200 border-neutral-400/50 shadow-black/40'
+        }`}
+      >
+        {/* Coin Inner Rim */}
+        <div className="absolute inset-1 rounded-full border border-dashed border-black/20 pointer-events-none" />
+        
+        <div className="text-center font-mono font-black text-xs leading-none">
+          <div className="text-base font-black tracking-tight">{isHeads ? 'H' : 'T'}</div>
+          <div className="text-[9px] uppercase tracking-wider">{outcome || 'FLIP'}</div>
+        </div>
+
+        {isWinner && (
+          <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-emerald-400 rounded-full border-2 border-black animate-pulse" />
+        )}
+      </motion.div>
+      <span className="text-[10px] font-semibold text-neutral-400 uppercase tracking-widest">{label}</span>
+    </div>
   );
 };
 
 export const PreMatchSetup = () => {
   const { user } = useAuth();
-  const { room, opponent, setup, chooseSetting } = useMatchContext();
+  const { room, opponent, setup, chooseSetting, bailOut } = useMatchContext();
+  const [showBailModal, setShowBailModal] = useState(false);
 
-  const rolls = setup?.rolls || {};
+  const flips = setup?.coinFlips || setup?.rolls || {};
   const choices = setup?.choices || {};
   const availableTopics = setup?.availableTopics || [
     { id: 'arrays', label: 'Arrays' },
@@ -63,29 +78,41 @@ export const PreMatchSetup = () => {
   const opponentName = opponent?.username || 'Opponent';
   const myName = user?.username || 'You';
 
-  // Check choices readiness
   const isTopicDone = Boolean(choices.topic);
   const isCountDone = Boolean(choices.questionCount);
   const isTimeDone = Boolean(choices.timePerQuestion);
   const allDone = isTopicDone && isCountDone && isTimeDone;
 
   return (
-    <div className="min-h-screen w-full bg-[#050508] bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(120,119,198,0.15),rgba(255,255,255,0))] text-white flex flex-col items-center justify-start p-4 sm:p-6 md:p-8 overflow-y-auto">
+    <div className="min-h-screen w-full bg-[#050508] bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(245,158,11,0.12),rgba(255,255,255,0))] text-white flex flex-col items-center justify-start p-4 sm:p-6 md:p-8 overflow-y-auto relative">
+      
+      {/* Top Action Bar with Bail Out */}
+      <div className="max-w-4xl w-full flex items-center justify-between mt-1 mb-4">
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs font-semibold uppercase tracking-widest">
+          <Coins className="w-3.5 h-3.5 text-amber-400" />
+          Toss Mode: 3 Coin Flips
+        </div>
+
+        <button
+          onClick={() => setShowBailModal(true)}
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 text-xs font-bold transition-all hover:scale-105 active:scale-95 shadow-sm"
+        >
+          <Flag className="w-3.5 h-3.5" />
+          <span>Bail Out</span>
+        </button>
+      </div>
+
       {/* Header */}
       <motion.div 
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="max-w-4xl w-full text-center mt-2 mb-8"
+        className="max-w-4xl w-full text-center mb-8"
       >
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-violet-500/10 border border-violet-500/20 text-violet-400 text-xs font-semibold uppercase tracking-widest mb-3">
-          <Dices className="w-3.5 h-3.5" />
-          Pre-Match Dice Roll & Setup
-        </div>
-        <h1 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight bg-gradient-to-r from-white via-neutral-200 to-neutral-500 bg-clip-text text-transparent">
-          Determine Match Rules
+        <h1 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight bg-gradient-to-r from-amber-200 via-white to-amber-500 bg-clip-text text-transparent">
+          Coin Toss Match Setup
         </h1>
         <p className="text-neutral-400 text-sm sm:text-base mt-2 max-w-xl mx-auto">
-          Three independent dice rolls determine who controls the <span className="text-white font-medium">Topic</span>, <span className="text-white font-medium">Question Count</span>, and <span className="text-white font-medium">Time per Question</span>.
+          Three coin flips decide who gets to pick the <span className="text-white font-medium">Topic</span>, <span className="text-white font-medium">Question Count</span>, and <span className="text-white font-medium">Time per Question</span>.
         </p>
       </motion.div>
 
@@ -96,36 +123,36 @@ export const PreMatchSetup = () => {
         className="max-w-4xl w-full bg-white/[0.03] backdrop-blur-xl border border-white/10 rounded-2xl p-4 sm:p-5 flex items-center justify-between gap-4 mb-6 shadow-2xl"
       >
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-violet-600/20 border border-violet-500/30 flex items-center justify-center font-bold text-violet-300">
+          <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center font-bold text-amber-300">
             {myName[0]?.toUpperCase()}
           </div>
           <div>
             <div className="text-sm font-bold text-white flex items-center gap-2">
-              {myName} <span className="text-xs px-2 py-0.5 rounded bg-violet-500/20 text-violet-300">You</span>
+              {myName} <span className="text-xs px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 font-medium">You</span>
             </div>
-            <div className="text-xs text-neutral-400 font-mono">Rating: {user?.rating || 1500}</div>
+            <div className="text-xs text-neutral-400 font-mono">Assigned: <strong className="text-amber-300">HEADS</strong></div>
           </div>
         </div>
 
         <div className="flex flex-col items-center">
-          <span className="text-xs font-black uppercase tracking-wider text-amber-400/80 bg-amber-500/10 px-3 py-1 rounded-full border border-amber-500/20">
-            Ranked 1v1
+          <span className="text-xs font-black uppercase tracking-wider text-amber-400 bg-amber-500/10 px-3 py-1 rounded-full border border-amber-500/30 flex items-center gap-1.5 shadow-sm">
+            <Coins className="w-3.5 h-3.5" /> Toss Mode
           </span>
-          <span className="text-[10px] text-neutral-500 mt-1 font-mono">Live Setup Phase</span>
+          <span className="text-[10px] text-neutral-500 mt-1 font-mono">Live Coin Flips</span>
         </div>
 
         <div className="flex items-center gap-3 text-right">
           <div>
             <div className="text-sm font-bold text-white">{opponentName}</div>
-            <div className="text-xs text-neutral-400 font-mono">Rating: {opponent?.rating || 1500}</div>
+            <div className="text-xs text-neutral-400 font-mono">Assigned: <strong className="text-neutral-300">TAILS</strong></div>
           </div>
-          <div className="w-10 h-10 rounded-xl bg-rose-600/20 border border-rose-500/30 flex items-center justify-center font-bold text-rose-300">
+          <div className="w-10 h-10 rounded-xl bg-neutral-600/20 border border-neutral-500/30 flex items-center justify-center font-bold text-neutral-300">
             {opponentName[0]?.toUpperCase()}
           </div>
         </div>
       </motion.div>
 
-      {/* Three Setting Cards */}
+      {/* Three Setting Cards with Coin Flips */}
       <div className="max-w-4xl w-full flex flex-col gap-6">
         
         {/* CARD 1: TOPIC */}
@@ -133,16 +160,16 @@ export const PreMatchSetup = () => {
           title="Problem Topic"
           description="All problems in this contest will be sampled exclusively from the selected category."
           icon={<Code2 className="w-5 h-5 text-indigo-400" />}
-          roll={rolls.topic}
+          flip={flips.topic}
           currentUserId={currentUserId}
           opponentName={opponentName}
           isChosen={isTopicDone}
           chosenValue={availableTopics.find(t => t.id === choices.topic)?.label || choices.topic}
         >
-          {rolls.topic?.winnerId === currentUserId ? (
+          {flips.topic?.winnerId === currentUserId ? (
             <div className="mt-4">
               <div className="text-xs font-semibold text-emerald-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                <Sparkles className="w-3.5 h-3.5" /> You won the roll! Select a topic:
+                <Sparkles className="w-3.5 h-3.5" /> Coin landed on {flips.topic?.outcome || 'HEADS'}! You won the toss. Select a topic:
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
                 {availableTopics.map((topic) => {
@@ -169,6 +196,7 @@ export const PreMatchSetup = () => {
               winnerName={opponentName} 
               chosenText={availableTopics.find(t => t.id === choices.topic)?.label || choices.topic}
               settingLabel="topic"
+              outcome={flips.topic?.outcome}
             />
           )}
         </SettingCard>
@@ -178,16 +206,16 @@ export const PreMatchSetup = () => {
           title="Total Number of Questions"
           description="Decide how many questions both players must race to solve (1 to 3)."
           icon={<Layers className="w-5 h-5 text-amber-400" />}
-          roll={rolls.questionCount}
+          flip={flips.questionCount}
           currentUserId={currentUserId}
           opponentName={opponentName}
           isChosen={isCountDone}
           chosenValue={choices.questionCount ? `${choices.questionCount} ${choices.questionCount === 1 ? 'Problem' : 'Problems'}` : null}
         >
-          {rolls.questionCount?.winnerId === currentUserId ? (
+          {flips.questionCount?.winnerId === currentUserId ? (
             <div className="mt-4">
               <div className="text-xs font-semibold text-emerald-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                <Sparkles className="w-3.5 h-3.5" /> You won the roll! Select question count:
+                <Sparkles className="w-3.5 h-3.5" /> Coin landed on {flips.questionCount?.outcome || 'HEADS'}! You won the toss. Select question count:
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 {availableQuestionCounts.map((count) => {
@@ -224,6 +252,7 @@ export const PreMatchSetup = () => {
               winnerName={opponentName} 
               chosenText={choices.questionCount ? `${choices.questionCount} ${choices.questionCount === 1 ? 'Question' : 'Questions'}` : null}
               settingLabel="question count"
+              outcome={flips.questionCount?.outcome}
             />
           )}
         </SettingCard>
@@ -233,16 +262,16 @@ export const PreMatchSetup = () => {
           title="Time Per Question"
           description="Total match time is calculated as (Questions × Time). Choose 10 to 30 minutes."
           icon={<Timer className="w-5 h-5 text-emerald-400" />}
-          roll={rolls.timePerQuestion}
+          flip={flips.timePerQuestion}
           currentUserId={currentUserId}
           opponentName={opponentName}
           isChosen={isTimeDone}
           chosenValue={choices.timePerQuestion ? `${choices.timePerQuestion} min / problem` : null}
         >
-          {rolls.timePerQuestion?.winnerId === currentUserId ? (
+          {flips.timePerQuestion?.winnerId === currentUserId ? (
             <div className="mt-4">
               <div className="text-xs font-semibold text-emerald-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                <Sparkles className="w-3.5 h-3.5" /> You won the roll! Select time per question:
+                <Sparkles className="w-3.5 h-3.5" /> Coin landed on {flips.timePerQuestion?.outcome || 'HEADS'}! You won the toss. Select time per question:
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
                 {availableTimesPerQuestion.map((minutes) => {
@@ -274,6 +303,7 @@ export const PreMatchSetup = () => {
               winnerName={opponentName} 
               chosenText={choices.timePerQuestion ? `${choices.timePerQuestion} minutes per question` : null}
               settingLabel="time per question"
+              outcome={flips.timePerQuestion?.outcome}
             />
           )}
         </SettingCard>
@@ -327,24 +357,65 @@ export const PreMatchSetup = () => {
           )}
         </div>
       </motion.div>
+
+      {/* Bail Out Confirmation Modal */}
+      <AnimatePresence>
+        {showBailModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-[#12121c] border border-red-500/30 rounded-2xl p-6 max-w-md w-full shadow-2xl text-center"
+            >
+              <div className="w-12 h-12 rounded-full bg-red-500/10 border border-red-500/30 flex items-center justify-center mx-auto mb-4 text-red-400">
+                <AlertTriangle className="w-6 h-6" />
+              </div>
+              <h3 className="text-xl font-bold text-white mb-2">Bail Out of Match?</h3>
+              <p className="text-sm text-neutral-400 mb-6 leading-relaxed">
+                If you bail out, your opponent will <strong className="text-white">automatically win</strong> the match, and you will receive a defeat penalty on your rating.
+              </p>
+              <div className="flex gap-3 justify-center">
+                <button
+                  onClick={() => setShowBailModal(false)}
+                  className="px-5 py-2.5 rounded-xl border border-white/10 hover:bg-white/5 text-sm font-semibold text-neutral-300 transition-colors"
+                >
+                  Stay in Match
+                </button>
+                <button
+                  onClick={() => {
+                    setShowBailModal(false);
+                    bailOut();
+                  }}
+                  className="px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-sm font-bold shadow-lg shadow-red-600/30 transition-all"
+                >
+                  Yes, Bail Out
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
     </div>
   );
 };
 
-// Subcomponent for each Setting Card
+// Subcomponent for each Setting Card with Coin Flip
 const SettingCard = ({
   title,
   description,
   icon,
-  roll,
+  flip,
   currentUserId,
   opponentName,
   isChosen,
   chosenValue,
   children
 }) => {
-  const isMeWinner = roll?.winnerId === currentUserId;
+  const isMeWinner = flip?.winnerId === currentUserId;
   const winnerName = isMeWinner ? 'You' : opponentName;
+  const outcome = flip?.outcome || (flip?.p1Roll > flip?.p2Roll ? 'HEADS' : 'TAILS');
 
   return (
     <motion.div 
@@ -354,11 +425,11 @@ const SettingCard = ({
         isChosen 
           ? 'bg-white/[0.02] border-white/10 shadow-lg' 
           : isMeWinner 
-            ? 'bg-gradient-to-br from-white/[0.04] to-violet-500/[0.03] border-violet-500/30 shadow-violet-500/5 shadow-xl' 
+            ? 'bg-gradient-to-br from-white/[0.04] to-amber-500/[0.03] border-amber-500/30 shadow-amber-500/5 shadow-xl' 
             : 'bg-white/[0.02] border-white/10'
       }`}
     >
-      {/* Top Row: Setting Header & Dice Rolls */}
+      {/* Top Row: Setting Header & Coin Flip */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-white/5">
         <div className="flex items-start gap-3">
           <div className="p-2.5 rounded-xl bg-white/[0.05] border border-white/10 mt-0.5">
@@ -377,19 +448,18 @@ const SettingCard = ({
           </div>
         </div>
 
-        {/* Dice roll battle display */}
-        {roll && (
-          <div className="flex items-center gap-3 bg-black/40 px-3.5 py-2 rounded-xl border border-white/5 self-start sm:self-center">
-            <div className="flex items-center gap-2">
-              <DiceFace value={roll.p1Roll} isWinner={roll.p1Roll > roll.p2Roll} />
-              <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider">vs</span>
-              <DiceFace value={roll.p2Roll} isWinner={roll.p2Roll > roll.p1Roll} />
-            </div>
+        {/* Coin Flip Result Display */}
+        {flip && (
+          <div className="flex items-center gap-3.5 bg-black/50 px-4 py-2.5 rounded-2xl border border-white/10 self-start sm:self-center shadow-lg">
+            <CoinDisplay outcome={outcome} isWinner={isMeWinner} label={outcome} />
 
-            <div className="pl-2 border-l border-white/10">
-              <div className="text-[10px] text-neutral-400 uppercase font-semibold">Roll Winner</div>
-              <div className={`text-xs font-bold ${isMeWinner ? 'text-amber-400' : 'text-neutral-200'}`}>
+            <div className="pl-3 border-l border-white/10">
+              <div className="text-[10px] text-neutral-400 uppercase font-bold tracking-wider">Toss Winner</div>
+              <div className={`text-xs font-black tracking-tight ${isMeWinner ? 'text-amber-400' : 'text-neutral-200'}`}>
                 {winnerName} {isMeWinner && '(You)'}
+              </div>
+              <div className="text-[10px] text-neutral-500 font-mono mt-0.5">
+                Landed: {outcome}
               </div>
             </div>
           </div>
@@ -403,7 +473,7 @@ const SettingCard = ({
 };
 
 // Subcomponent for opponent waiting placeholder
-const WaitingPlaceholder = ({ isChosen, winnerName, chosenText, settingLabel }) => {
+const WaitingPlaceholder = ({ isChosen, winnerName, chosenText, settingLabel, outcome }) => {
   if (isChosen) {
     return (
       <div className="mt-4 p-3.5 rounded-xl bg-emerald-500/5 border border-emerald-500/20 flex items-center justify-between">
@@ -421,7 +491,7 @@ const WaitingPlaceholder = ({ isChosen, winnerName, chosenText, settingLabel }) 
     <div className="mt-4 p-4 rounded-xl bg-white/[0.02] border border-white/5 flex items-center gap-3">
       <div className="w-4 h-4 rounded-full border-2 border-neutral-500 border-t-amber-400 animate-spin" />
       <span className="text-xs text-neutral-400">
-        Waiting for <strong className="text-neutral-200">{winnerName}</strong> to select the {settingLabel}...
+        Coin landed on <strong className="text-amber-300">{outcome || 'TAILS'}</strong>. Waiting for <strong className="text-neutral-200">{winnerName}</strong> to select the {settingLabel}...
       </span>
     </div>
   );
