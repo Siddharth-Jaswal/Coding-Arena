@@ -70,9 +70,19 @@ export const Navbar = ({ variant = "landing" }) => {
                 <Link to="/problems" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
                   Problems
                 </Link>
-                <Link to="#" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+                <a 
+                  href="/#game-modes" 
+                  onClick={(e) => {
+                    const el = document.getElementById('game-modes');
+                    if (el) {
+                      e.preventDefault();
+                      el.scrollIntoView({ behavior: 'smooth' });
+                    }
+                  }}
+                  className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                >
                   Game Modes
-                </Link>
+                </a>
                 <Link to="#" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors opacity-50 cursor-not-allowed" title="Coming Soon">
                   Leaderboard
                 </Link>

@@ -29,7 +29,7 @@ const modes = [
 
 export const GameModes = () => {
   return (
-    <Section className="relative z-10">
+    <Section id="game-modes" className="relative z-10 scroll-mt-20">
       <Container>
         <Stack gap={12}>
           <motion.div 

@@ -1,5 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
 import { Container, Stack } from '@/components/layout';
 import { Button } from '@/components/ui/Button';
 import { fadeSlideUp, staggerChildren } from '@/lib/motion';
@@ -7,6 +9,24 @@ import { Swords } from 'lucide-react';
 import { LiveBattleShowcase } from './LiveBattleShowcase';
 
 export const HeroSection = () => {
+  const { isAuthenticated } = useAuth();
+  const navigate = useNavigate();
+
+  const handleFindMatch = () => {
+    if (isAuthenticated) {
+      navigate('/matchmaking');
+    } else {
+      navigate('/login', { state: { from: { pathname: '/matchmaking' } } });
+    }
+  };
+
+  const handleViewLeaderboard = () => {
+    const el = document.getElementById('game-modes');
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
   return (
     <Container className="pt-32 pb-16 relative z-10">
       <Stack align="center" gap={8} className="text-center max-w-4xl mx-auto">
@@ -28,11 +48,11 @@ export const HeroSection = () => {
           </motion.p>
           
           <motion.div variants={fadeSlideUp} className="flex flex-col sm:flex-row items-center gap-4 mt-4 w-full sm:w-auto justify-center">
-            <Button size="lg" className="w-full sm:w-auto px-10 text-base" icon={Swords}>
+            <Button size="lg" className="w-full sm:w-auto px-10 text-base" icon={Swords} onClick={handleFindMatch}>
               Find Match (Beta)
             </Button>
-            <Button variant="glass" size="lg" className="w-full sm:w-auto px-10 text-base">
-              View Leaderboard
+            <Button variant="glass" size="lg" className="w-full sm:w-auto px-10 text-base" onClick={handleViewLeaderboard}>
+              View Game Modes
             </Button>
           </motion.div>
         </motion.div>

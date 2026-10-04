@@ -1,11 +1,24 @@
 import React from 'react';
 import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
 import { Section, Container, Stack } from '@/components/layout';
 import { Button } from '@/components/ui/Button';
 import { fadeSlideUp } from '@/lib/motion';
 import { Swords } from 'lucide-react';
 
 export const FinalCTA = () => {
+  const { isAuthenticated } = useAuth();
+  const navigate = useNavigate();
+
+  const handleQueueUp = () => {
+    if (isAuthenticated) {
+      navigate('/matchmaking');
+    } else {
+      navigate('/login', { state: { from: { pathname: '/matchmaking' } } });
+    }
+  };
+
   return (
     <Section className="relative z-10 py-32 border-t border-border/20 mt-12 bg-black/40 overflow-hidden">
       {/* Heavy glow behind CTA */}
@@ -25,7 +38,7 @@ export const FinalCTA = () => {
             <p className="text-xl text-muted-foreground">
               Join thousands of developers in the most competitive coding platform on the web.
             </p>
-            <Button size="lg" className="mt-4 px-12 text-lg shadow-glow-primary" icon={Swords}>
+            <Button size="lg" className="mt-4 px-12 text-lg shadow-glow-primary" icon={Swords} onClick={handleQueueUp}>
               Queue Up Now
             </Button>
           </Stack>
