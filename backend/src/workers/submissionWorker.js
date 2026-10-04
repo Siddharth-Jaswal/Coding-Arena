@@ -60,8 +60,9 @@ end
 local matchEnded = false
 local winnerId = nil
 
--- Check if they solved all 3
-if solvedCount >= 3 then
+-- Check if they solved all required problems
+local totalRequired = tonumber(room.totalQuestions) or (room.problems and #room.problems) or 3
+if solvedCount >= totalRequired then
     room.status = 'finished'
     room.winner = userId
     matchEnded = true

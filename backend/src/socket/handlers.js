@@ -44,6 +44,14 @@ const registerHandlers = (io, socket) => {
         }
     });
 
+    socket.on(CLIENT_EVENTS.CHOOSE_MATCH_SETTING, async (payload) => {
+        try {
+            await roomService.handleChooseSetting(io, socket, payload);
+        } catch (error) {
+            socket.emit(SERVER_EVENTS.ERROR, { message: error.message });
+        }
+    });
+
     socket.on(CLIENT_EVENTS.PING, () => {
         // Just a latency check
         socket.emit('PONG', { timestamp: Date.now() });

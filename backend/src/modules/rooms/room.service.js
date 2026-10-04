@@ -8,34 +8,69 @@ class RoomService {
     async createRoom(io, player1, player2) {
         const roomId = `room:${uuidv4()}`;
 
-        // Select problems
-        // In a real app we'd carefully select 1 easy, 2 mediums.
-        // For now, we pick 3 random problems from the DB.
-        const allProblems = await prisma.problems.findMany({
-            select: { id: true, title: true, difficulty: true },
-            take: 10
-        });
-        
-        // Shuffle and pick 3
-        const shuffled = allProblems.sort(() => 0.5 - Math.random());
-        const selectedProblems = shuffled.slice(0, 3).map(p => ({
-            id: p.id.toString(), // Convert BigInt to string
-            title: p.title,
-            difficulty: p.difficulty
-        }));
+        // Roll 3 independent dice pairs for: topic, question count, and time per question
+        const rollDicePair = (p1Id, p2Id) => {
+            let p1Roll, p2Roll;
+            do {
+                p1Roll = Math.floor(Math.random() * 6) + 1;
+                p2Roll = Math.floor(Math.random() * 6) + 1;
+            } while (p1Roll === p2Roll); // ensure a decisive winner
+            return {
+                winnerId: p1Roll > p2Roll ? p1Id : p2Id,
+                p1Roll,
+                p2Roll
+            };
+        };
+
+        const rolls = {
+            topic: rollDicePair(player1.id, player2.id),
+            questionCount: rollDicePair(player1.id, player2.id),
+            timePerQuestion: rollDicePair(player1.id, player2.id)
+        };
+
+        const availableTopics = [
+            { id: 'arrays', label: 'Arrays', description: 'Two pointers, sliding window, manipulation' },
+            { id: 'strings', label: 'Strings', description: 'Parsing, substrings, palindromes' },
+            { id: 'dynamic-programming', label: 'Dynamic Programming', description: 'Memoization, tabulation, subproblems' },
+            { id: 'graphs', label: 'Graphs', description: 'BFS, DFS, shortest path' },
+            { id: 'greedy', label: 'Greedy', description: 'Optimal choice, intervals, sorting' },
+            { id: 'binary-search', label: 'Binary Search', description: 'Divide & conquer, search space' },
+            { id: 'two-pointers', label: 'Two Pointers', description: 'Sorted arrays, pairs, fast & slow' },
+            { id: 'stack-queue', label: 'Stack & Queue', description: 'Monotonic stack, FIFO/LIFO' },
+            { id: 'linked-list', label: 'Linked List', description: 'Pointers, cycles, reversals' },
+            { id: 'trees', label: 'Trees', description: 'Traversals, BST, depth' }
+        ];
 
         const roomState = {
             roomId,
             players: {
-                [player1.id]: { username: player1.username || 'Player 1', ready: false, disconnected: false },
-                [player2.id]: { username: player2.username || 'Player 2', ready: false, disconnected: false }
+                [player1.id]: { username: player1.username || 'Player 1', rating: player1.rating, ready: false, disconnected: false },
+                [player2.id]: { username: player2.username || 'Player 2', rating: player2.rating, ready: false, disconnected: false }
             },
-            problems: selectedProblems,
+            setup: {
+                rolls,
+                choices: {
+                    topic: null,
+                    questionCount: null,
+                    timePerQuestion: null
+                },
+                availableTopics,
+                availableQuestionCounts: [1, 2, 3],
+                availableTimesPerQuestion: [10, 15, 20, 25, 30] // minutes
+            },
+            problems: [],
+            totalQuestions: 0,
+            durationSeconds: 0,
+            timePerQuestion: 0,
             scores: {
                 [player1.id]: 0,
                 [player2.id]: 0
             },
-            status: 'waiting',
+            solved: {
+                [player1.id]: {},
+                [player2.id]: {}
+            },
+            status: 'setup',
             startedAt: null,
             endsAt: null,
             winner: null
@@ -59,13 +94,7 @@ class RoomService {
         multi.set(`matchmaking:player:${player2.id}`, roomId, 'EX', 10800);
         await multi.exec();
 
-        // Broadcast MATCH_FOUND and ROOM_CREATED to the specific sockets
-        // Using io.to(socketId) to send private messages
-        const matchPayload = {
-            roomId,
-            opponent: {} // We send each player their opponent
-        };
-
+        // Broadcast MATCH_FOUND, ROOM_CREATED, and MATCH_SETUP_STARTED to specific sockets
         const roomPayload = roomState;
 
         if (player1.socketId) {
@@ -75,6 +104,7 @@ class RoomService {
                 opponent: { id: player2.id, username: player2.username || 'Player 2', rating: player2.rating }
             });
             io.to(player1.socketId).emit(SERVER_EVENTS.ROOM_CREATED, { ...roomPayload, attemptId: player1.attemptId });
+            io.to(player1.socketId).emit(SERVER_EVENTS.MATCH_SETUP_STARTED, { roomId, setup: roomPayload.setup });
         }
 
         if (player2.socketId) {
@@ -84,6 +114,7 @@ class RoomService {
                 opponent: { id: player1.id, username: player1.username || 'Player 1', rating: player1.rating }
             });
             io.to(player2.socketId).emit(SERVER_EVENTS.ROOM_CREATED, { ...roomPayload, attemptId: player2.attemptId });
+            io.to(player2.socketId).emit(SERVER_EVENTS.MATCH_SETUP_STARTED, { roomId, setup: roomPayload.setup });
         }
     }
 
@@ -183,6 +214,143 @@ class RoomService {
         } else {
             await redisClient.set(roomId, JSON.stringify(room), 'EX', 86400);
         }
+    }
+
+    async handleChooseSetting(io, socket, payload) {
+        const { roomId, setting, value } = payload || {};
+        if (!roomId || !setting || value === undefined || value === null) return;
+
+        const roomData = await redisClient.get(roomId);
+        if (!roomData) return;
+
+        const room = JSON.parse(roomData);
+        if (room.status !== 'setup') return;
+
+        const userId = socket.user.id;
+        const rollInfo = room.setup?.rolls?.[setting];
+        if (!rollInfo) return;
+
+        if (rollInfo.winnerId !== userId) {
+            socket.emit(SERVER_EVENTS.ERROR, { message: "You did not win the roll to choose this setting." });
+            return;
+        }
+
+        if (setting === 'topic') {
+            const validTopic = room.setup.availableTopics.some(t => t.id === value);
+            if (!validTopic) {
+                socket.emit(SERVER_EVENTS.ERROR, { message: "Invalid topic chosen." });
+                return;
+            }
+            room.setup.choices.topic = value;
+        } else if (setting === 'questionCount') {
+            const count = parseInt(value, 10);
+            if (![1, 2, 3].includes(count)) {
+                socket.emit(SERVER_EVENTS.ERROR, { message: "Invalid question count." });
+                return;
+            }
+            room.setup.choices.questionCount = count;
+        } else if (setting === 'timePerQuestion') {
+            const time = parseInt(value, 10);
+            if (![10, 15, 20, 25, 30].includes(time)) {
+                socket.emit(SERVER_EVENTS.ERROR, { message: "Invalid time per question." });
+                return;
+            }
+            room.setup.choices.timePerQuestion = time;
+        }
+
+        await redisClient.set(roomId, JSON.stringify(room), 'EX', 10800);
+
+        // Broadcast setting chosen
+        io.to(roomId).emit(SERVER_EVENTS.MATCH_SETTING_CHOSEN, {
+            setting,
+            value: room.setup.choices[setting],
+            chosenBy: userId,
+            choices: room.setup.choices
+        });
+
+        // If all 3 settings chosen, finalize and start countdown
+        const { topic, questionCount, timePerQuestion } = room.setup.choices;
+        if (topic && questionCount && timePerQuestion) {
+            await this.finalizeSetupAndStartCountdown(io, roomId, room);
+        }
+    }
+
+    async finalizeSetupAndStartCountdown(io, roomId, room) {
+        const { topic, questionCount, timePerQuestion } = room.setup.choices;
+
+        // Query problems for chosen topic
+        const matchingProblems = await prisma.problems.findMany({
+            where: { tags: { has: topic } },
+            select: { id: true, title: true, difficulty: true }
+        });
+
+        const shuffled = matchingProblems.sort(() => 0.5 - Math.random());
+        let selected = shuffled.slice(0, questionCount);
+
+        // If fewer problems than questionCount, backfill from other problems
+        if (selected.length < questionCount) {
+            const existingIds = selected.map(p => p.id);
+            const backfill = await prisma.problems.findMany({
+                where: { id: { notIn: existingIds } },
+                select: { id: true, title: true, difficulty: true },
+                take: questionCount - selected.length
+            });
+            selected = selected.concat(backfill);
+        }
+
+        room.problems = selected.map(p => ({
+            id: p.id.toString(),
+            title: p.title,
+            difficulty: p.difficulty
+        }));
+        room.totalQuestions = room.problems.length;
+        room.timePerQuestion = timePerQuestion;
+
+        const durationSeconds = room.totalQuestions * timePerQuestion * 60;
+        room.durationSeconds = durationSeconds;
+        room.status = 'countdown';
+
+        await redisClient.set(roomId, JSON.stringify(room), 'EX', 86400);
+
+        io.to(roomId).emit(SERVER_EVENTS.MATCH_SETUP_COMPLETED, {
+            problems: room.problems,
+            totalQuestions: room.totalQuestions,
+            durationSeconds,
+            setup: room.setup
+        });
+
+        io.to(roomId).emit(SERVER_EVENTS.COUNTDOWN_STARTED, { startsInSeconds: 5 });
+
+        setTimeout(async () => {
+            const refreshedRoomStr = await redisClient.get(roomId);
+            if (!refreshedRoomStr) return;
+            const refreshedRoom = JSON.parse(refreshedRoomStr);
+
+            refreshedRoom.status = 'running';
+            refreshedRoom.startedAt = new Date().toISOString();
+            refreshedRoom.endsAt = new Date(Date.now() + durationSeconds * 1000).toISOString();
+
+            await redisClient.set(roomId, JSON.stringify(refreshedRoom), 'EX', 86400);
+
+            io.to(roomId).emit(SERVER_EVENTS.CONTEST_STARTED, {
+                startedAt: refreshedRoom.startedAt,
+                durationSeconds,
+                endsAt: refreshedRoom.endsAt,
+                problems: refreshedRoom.problems
+            });
+
+            setTimeout(async () => {
+                try {
+                    const finalResult = await matchService.finalizeMatch(roomId, null, 'TIME_EXPIRED');
+                    if (finalResult) {
+                        io.to(roomId).emit(SERVER_EVENTS.MATCH_FINISHED, finalResult);
+                    }
+                } catch (err) {
+                    console.error('Error during timeout match finalization:', err);
+                }
+            }, durationSeconds * 1000);
+
+        }, 5000);
     }
 
     async handleReconnect(io, socket, userId) {
