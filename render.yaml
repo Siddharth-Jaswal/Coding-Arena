@@ -1,0 +1,40 @@
+services:
+  # 1. Backend API & WebSockets
+  - type: web
+    name: codearena-api
+    runtime: node
+    plan: free
+    rootDir: backend
+    buildCommand: npm install && npx prisma generate
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: APP_MODE
+        value: prod
+      - key: DATABASE_URL
+        sync: false
+      - key: REDIS_URL
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: ALLOWED_ORIGINS
+        value: http://localhost:5173
+
+  # 2. Judge Worker (Docker Container with g++ compiler)
+  - type: web
+    name: codearena-judge-worker
+    runtime: docker
+    plan: free
+    rootDir: backend
+    dockerfilePath: Dockerfile
+    dockerContext: .
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: APP_MODE
+        value: prod
+      - key: DATABASE_URL
+        sync: false
+      - key: REDIS_URL
+        sync: false
