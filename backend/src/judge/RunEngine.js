@@ -102,6 +102,7 @@ class RunEngine {
                 test_case: test.case_order,
                 status,
                 execution_time_ms: executionTimeMs,
+                input: test.input_data,
                 expected_output: test.output_data,
                 actual_output: actualOutput
             });

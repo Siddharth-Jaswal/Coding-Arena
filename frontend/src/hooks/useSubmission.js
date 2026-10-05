@@ -4,9 +4,11 @@ import { submissionApi } from '@/api/submissions';
 
 export const useSubmission = (problemId, defaultLanguage = 'cpp') => {
   const [submissionsByProblem, setSubmissionsByProblem] = useState({});
+  const [runResultsByProblem, setRunResultsByProblem] = useState({});
   const [consolesByProblem, setConsolesByProblem] = useState({});
 
   const activeSubmission = submissionsByProblem[problemId] || null;
+  const runResult = runResultsByProblem[problemId] || null;
   const consoleMessages = consolesByProblem[problemId] || '';
 
   const setActiveSubmission = (updateFnOrValue) => {
@@ -16,6 +18,11 @@ export const useSubmission = (problemId, defaultLanguage = 'cpp') => {
       const newValue = typeof updateFnOrValue === 'function' ? updateFnOrValue(current) : updateFnOrValue;
       return { ...prev, [problemId]: newValue };
     });
+  };
+
+  const setRunResult = (val) => {
+    if (!problemId) return;
+    setRunResultsByProblem(prev => ({ ...prev, [problemId]: val }));
   };
 
   const setConsoleMessages = (updateFnOrValue) => {
@@ -32,8 +39,22 @@ export const useSubmission = (problemId, defaultLanguage = 'cpp') => {
     return `[${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}]`;
   };
 
-  const appendToConsole = (msg) => {
-    setConsoleMessages(prev => prev + `${getTimestamp()}\n${msg}\n-----------------------------------\n`);
+  const appendToConsole = (msg, tag = 'INFO') => {
+    const icons = {
+      INFO: 'ℹ️',
+      WAIT: '⏳',
+      RUN: '⚙️',
+      OK: '✅',
+      ERROR: '❌',
+      WARN: '⚠️'
+    };
+    const icon = icons[tag] || '•';
+    setConsoleMessages(prev => prev ? `${prev}\n${getTimestamp()} ${icon} ${msg}` : `${getTimestamp()} ${icon} ${msg}`);
+  };
+
+  const clearConsole = () => {
+    if (!problemId) return;
+    setConsolesByProblem(prev => ({ ...prev, [problemId]: '' }));
   };
 
   // The Mutation to initially submit the code
@@ -41,8 +62,8 @@ export const useSubmission = (problemId, defaultLanguage = 'cpp') => {
     mutationFn: (payload) => {
       const source_code = typeof payload === 'string' ? payload : payload?.source_code;
       const language = (typeof payload === 'object' && payload?.language) || defaultLanguage;
-      setConsoleMessages(''); // Clear on new submit
-      appendToConsole('Starting submission process...');
+      
+      appendToConsole(`Submitting solution in ${language.toUpperCase()}...`, 'WAIT');
       return submissionApi.createSubmission({
         problem_id: parseInt(problemId, 10),
         language,
@@ -50,15 +71,15 @@ export const useSubmission = (problemId, defaultLanguage = 'cpp') => {
       });
     },
     onSuccess: (data) => {
-      // The API initially returns { submission_id, status: 'queued' }
       setActiveSubmission({
         submission_id: data.submission_id,
         status: data.status || 'queued',
+        verdict: null
       });
-      appendToConsole(`Submission queued (ID: ${data.submission_id})...`);
+      appendToConsole(`Submission queued (ID: #${data.submission_id}). Waiting for judge...`, 'WAIT');
     },
     onError: (error) => {
-      appendToConsole(`Submission failed: ${error.message || 'Unknown error'}`);
+      appendToConsole(`Submission failed to queue: ${error.message || 'Unknown error'}`, 'ERROR');
       setActiveSubmission(null);
     }
   });
@@ -78,15 +99,17 @@ export const useSubmission = (problemId, defaultLanguage = 'cpp') => {
   useEffect(() => {
     if (statusData) {
       setActiveSubmission(prev => {
-        // Only trigger console updates if status changed
+        // Trigger clean step-by-step console messages
         if (prev?.status !== statusData.status) {
           if (statusData.status === 'running') {
-            appendToConsole('Running against hidden test cases...');
+            appendToConsole('Running against hidden judge test cases...', 'RUN');
           } else if (statusData.status === 'completed') {
-            appendToConsole('Execution finished. Check Submission tab for verdict.');
+            const isAccepted = statusData.verdict?.toLowerCase() === 'accepted';
+            const iconTag = isAccepted ? 'OK' : 'ERROR';
+            const timeStr = statusData.execution_time_ms ? ` (${statusData.execution_time_ms} ms)` : '';
+            appendToConsole(`Judging completed: ${statusData.verdict}${timeStr}`, iconTag);
           }
         }
-        // Always store full data
         return { ...prev, ...statusData, hasPollingError: false };
       });
     }
@@ -94,7 +117,7 @@ export const useSubmission = (problemId, defaultLanguage = 'cpp') => {
 
   useEffect(() => {
     if (isError) {
-      appendToConsole(`Polling failed: ${error.message}`);
+      appendToConsole(`Judge connection polling issue: ${error.message}`, 'WARN');
       setActiveSubmission(prev => prev ? { ...prev, hasPollingError: true } : null);
     }
   }, [isError, error]);
@@ -102,7 +125,7 @@ export const useSubmission = (problemId, defaultLanguage = 'cpp') => {
   const retryPolling = () => {
     if (activeSubmission) {
       setActiveSubmission(prev => ({ ...prev, hasPollingError: false }));
-      appendToConsole('Retrying judge connection...');
+      appendToConsole('Retrying judge connection...', 'WAIT');
       refetch();
     }
   };
@@ -111,8 +134,8 @@ export const useSubmission = (problemId, defaultLanguage = 'cpp') => {
     mutationFn: (payload) => {
       const source_code = typeof payload === 'string' ? payload : payload?.source_code;
       const language = (typeof payload === 'object' && payload?.language) || defaultLanguage;
-      setConsoleMessages('');
-      appendToConsole('Running code against public sample tests...');
+      
+      appendToConsole(`Executing code against sample test cases (${language.toUpperCase()})...`, 'RUN');
       return submissionApi.runCode({
         problem_id: parseInt(problemId, 10),
         language,
@@ -120,26 +143,17 @@ export const useSubmission = (problemId, defaultLanguage = 'cpp') => {
       });
     },
     onSuccess: (data) => {
-      appendToConsole(`Status: ${data.verdict}\nExecution Time: ${data.execution_time_ms}ms`);
+      setRunResult(data);
+      const isAccepted = data.verdict?.toLowerCase() === 'accepted';
+      const tag = isAccepted ? 'OK' : 'WARN';
+      appendToConsole(`Run Finished: ${data.verdict} (${data.execution_time_ms} ms)`, tag);
       
       if (data.compiler_output) {
-        appendToConsole(`Compiler Output:\n${data.compiler_output}`);
-      }
-
-      if (data.test_results && data.test_results.length > 0) {
-        data.test_results.forEach((test, index) => {
-          appendToConsole(
-            `Test Case ${test.test_case || index + 1}:\n` +
-            `Verdict: ${test.status}\n` +
-            `Time: ${test.execution_time_ms}ms\n` +
-            `Expected Output:\n${test.expected_output}\n` +
-            `Actual Output:\n${test.actual_output}`
-          );
-        });
+        appendToConsole(`Compiler Output:\n${data.compiler_output}`, 'ERROR');
       }
     },
     onError: (error) => {
-      appendToConsole(`Run failed: ${error.message || 'Unknown error'}`);
+      appendToConsole(`Code execution failed: ${error.message || 'Unknown error'}`, 'ERROR');
     }
   });
 
@@ -165,8 +179,10 @@ export const useSubmission = (problemId, defaultLanguage = 'cpp') => {
     isRunning: runCodeMutation.isPending,
     isSubmitting: submitMutation.isPending || (activeSubmission && activeSubmission.status !== 'completed'),
     activeSubmission,
+    runResult,
     consoleMessages,
     setConsoleMessages,
+    clearConsole,
     retryPolling
   };
 };

@@ -30,8 +30,10 @@ const ArenaPage = () => {
     isRunning,
     isSubmitting,
     activeSubmission,
+    runResult,
     consoleMessages,
     setConsoleMessages,
+    clearConsole,
     retryPolling
   } = useSubmission(id, 'cpp');
 
@@ -69,13 +71,15 @@ const ArenaPage = () => {
           isRunning,
           isSubmitting,
           consoleMessages,
-          activeSubmission
+          activeSubmission,
+          runResult
         }}
         submissionActions={{
           onRun: runSolution,
           onSubmit: submitSolution,
           onRetry: retryPolling,
-          setConsoleMessages
+          setConsoleMessages,
+          clearConsole
         }}
         workspaceConfig={{
           readOnly: false

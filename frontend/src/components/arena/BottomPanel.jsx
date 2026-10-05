@@ -33,7 +33,8 @@ export const BottomPanel = ({ tabs = [], defaultTab = 0, className, activeTab: e
             >
               <div className="flex items-center gap-2">
                 {tab.icon && <tab.icon size={14} className={isActive ? "text-primary" : ""} />}
-                {tab.label}
+                <span>{tab.label}</span>
+                {tab.badge}
               </div>
             </button>
           );

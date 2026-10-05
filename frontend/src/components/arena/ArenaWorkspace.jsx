@@ -1,11 +1,14 @@
 import React, { useState } from 'react';
-import { Terminal, TestTube, CheckCircle2, BookOpen, Code2 } from 'lucide-react';
+import { Terminal, TestTube, CheckCircle2, BookOpen, Code2, Play, Loader2 } from 'lucide-react';
 import { SplitPane } from '@/components/layout';
 import { ProblemPanel } from '@/components/arena/ProblemPanel';
 import { EditorPanel } from '@/components/arena/EditorPanel';
 import { BottomPanel } from '@/components/arena/BottomPanel';
 import { ActionBar } from '@/components/arena/ActionBar';
 import { SubmissionStatus } from '@/components/arena/SubmissionStatus';
+import { TestCasesTab } from '@/components/arena/TestCasesTab';
+import { TestResultTab } from '@/components/arena/TestResultTab';
+import { ConsoleTab } from '@/components/arena/ConsoleTab';
 import { useWorkspace } from '@/features/workspace/contexts/WorkspaceContext';
 
 export const ArenaWorkspace = ({
@@ -22,7 +25,9 @@ export const ArenaWorkspace = ({
     activeLanguage,
     setActiveLanguage,
     consoleMessages,
+    clearConsole,
     submissionState,
+    runResult,
     submissionActions,
     workspaceConfig,
     activeBottomTab,
@@ -37,31 +42,63 @@ export const ArenaWorkspace = ({
 
   const isLoading = !activeProblem;
 
+  const isRunAccepted = runResult?.verdict?.toLowerCase() === 'accepted';
+  const isSubmissionAccepted = activeSubmission?.verdict?.toLowerCase() === 'accepted';
+
   // Define tabs for the Bottom Panel
   const bottomTabs = [
+    {
+      label: 'Test Cases',
+      icon: TestTube,
+      content: (
+        <TestCasesTab 
+          problem={activeProblem} 
+          runResult={runResult} 
+          onRun={onRun} 
+          isRunning={isRunning} 
+        />
+      )
+    },
+    {
+      label: 'Test Result',
+      icon: Play,
+      badge: isRunning ? (
+        <Loader2 size={11} className="text-primary animate-spin" />
+      ) : runResult ? (
+        <span className={`w-2 h-2 rounded-full ${isRunAccepted ? 'bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.7)]' : 'bg-rose-400 shadow-[0_0_6px_rgba(244,63,94,0.7)]'}`} />
+      ) : null,
+      content: (
+        <TestResultTab 
+          runResult={runResult} 
+          isRunning={isRunning} 
+          onRun={onRun} 
+        />
+      )
+    },
+    {
+      label: 'Verdict',
+      icon: CheckCircle2,
+      badge: isSubmitting ? (
+        <Loader2 size={11} className="text-amber-400 animate-spin" />
+      ) : activeSubmission?.verdict ? (
+        <span className={`w-2 h-2 rounded-full ${isSubmissionAccepted ? 'bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.7)]' : 'bg-rose-400 shadow-[0_0_6px_rgba(244,63,94,0.7)]'}`} />
+      ) : null,
+      content: (
+        <SubmissionStatus 
+          submission={activeSubmission} 
+          onRetry={onRetry} 
+        />
+      )
+    },
     {
       label: 'Console',
       icon: Terminal,
       content: (
-        <div className="font-mono text-xs whitespace-pre-wrap text-muted-foreground">
-          {consoleMessages || 'Click "Run Code" or "Submit" to see execution output.'}
-        </div>
+        <ConsoleTab 
+          consoleMessages={consoleMessages} 
+          onClear={clearConsole} 
+        />
       )
-    },
-    {
-      label: 'Test Cases',
-      icon: TestTube,
-      content: <div className="text-muted-foreground text-sm">Test case explorer will be integrated with the execution service.</div>
-    },
-    {
-      label: 'Submission',
-      icon: CheckCircle2,
-      content: <SubmissionStatus submission={activeSubmission} onRetry={onRetry} />
-    },
-    {
-      label: 'Judge Logs',
-      icon: Terminal,
-      content: <div className="text-muted-foreground text-sm">Detailed judge logs will appear here after submission.</div>
     }
   ];
 

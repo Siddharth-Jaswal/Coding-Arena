@@ -46,7 +46,7 @@ class SubmissionService {
 
     async getSubmission(id) {
         const result = await pool.query(`
-            SELECT id as submission_id, status, verdict
+            SELECT id as submission_id, status, verdict, execution_time_ms, language, created_at, started_at, finished_at
             FROM submissions
             WHERE id = $1
         `, [id]);

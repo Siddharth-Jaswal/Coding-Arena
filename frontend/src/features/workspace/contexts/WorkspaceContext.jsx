@@ -72,14 +72,14 @@ export const WorkspaceProvider = ({
   // Override submission onRun to pass cached code and active language
   const handleRun = () => {
     if (submissionActions?.onRun && editorCode) {
-      setActiveBottomTab(0); // Switch to Console tab
+      setActiveBottomTab(1); // Auto-switch to Test Results tab
       submissionActions.onRun({ source_code: editorCode, language: activeLanguage });
     }
   };
 
   const handleSubmit = () => {
     if (submissionActions?.onSubmit && editorCode) {
-      setActiveBottomTab(2); // Switch to Submission tab
+      setActiveBottomTab(2); // Auto-switch to Verdict tab
       submissionActions.onSubmit({ source_code: editorCode, language: activeLanguage });
     }
   };
@@ -97,11 +97,13 @@ export const WorkspaceProvider = ({
     
     consoleMessages,
     setConsoleMessages,
+    clearConsole: submissionActions?.clearConsole,
     
     editorState,
     setEditorState,
     
     submissionState,
+    runResult: submissionState?.runResult,
     submissionActions: {
       ...submissionActions,
       onRun: handleRun,
