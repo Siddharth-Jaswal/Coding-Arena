@@ -119,7 +119,9 @@ export const ContestHeader = ({ room, status, endsAt }) => {
                     onClick={() => {
                       setShowBailModal(false);
                       bailOut();
-                      navigate('/matchmaking');
+                      if (status === 'waiting') {
+                        navigate('/matchmaking');
+                      }
                     }}
                     className="px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-sm font-bold shadow-lg shadow-red-600/30 transition-all hover:scale-105 active:scale-95"
                   >

@@ -121,8 +121,10 @@ class MatchService {
                 if (p2Delta < 6) p2Delta = 6;
             }
 
-            const p1NewRating = Math.max(100, p1.rating + p1Delta);
-            const p2NewRating = Math.max(100, p2.rating + p2Delta);
+            // Casual / Unranked mode check
+            const isRanked = room.mode !== 'casual';
+            const p1NewRating = isRanked ? Math.max(100, p1.rating + p1Delta) : p1.rating;
+            const p2NewRating = isRanked ? Math.max(100, p2.rating + p2Delta) : p2.rating;
 
             const TIERS = [
                 { name: 'Bronze', title: 'Novice', min: 0, max: 1199, color: '#f59e0b', badge: 'Shield' },
@@ -244,6 +246,17 @@ class MatchService {
             `;
             await redisClient.eval(LUA_COMPARE_AND_DELETE, 1, `matchmaking:player:${match.player1Id}`, roomId);
             await redisClient.eval(LUA_COMPARE_AND_DELETE, 1, `matchmaking:player:${match.player2Id}`, roomId);
+
+            // Clean up presence to online
+            const presenceService = require('../presence/presence.service');
+            try {
+                await Promise.all([
+                    presenceService.updateStatus(match.player1Id, 'online', ''),
+                    presenceService.updateStatus(match.player2Id, 'online', '')
+                ]);
+            } catch (presErr) {
+                console.error('Failed to update presence to online in finalizeMatch:', presErr);
+            }
 
             return {
                 roomId,

@@ -486,20 +486,41 @@ class RoomService {
         const playerIds = Object.keys(room.players || {});
         const opponentId = playerIds.find(id => String(id) !== String(bailedUserId));
 
-        // Always clean up the bailed player's active room mapping in Redis
-        await redisClient.del(`matchmaking:player:${bailedUserId}`);
+        const presenceService = require('../presence/presence.service');
+
+        // Always clean up both players' active matchmaking room mapping and presence in Redis
+        try {
+            await Promise.all([
+                redisClient.del(`matchmaking:player:${bailedUserId}`),
+                opponentId ? redisClient.del(`matchmaking:player:${opponentId}`) : Promise.resolve(),
+                presenceService.updateStatus(bailedUserId, 'online', ''),
+                opponentId ? presenceService.updateStatus(opponentId, 'online', '') : Promise.resolve()
+            ]);
+        } catch (cleanupErr) {
+            console.error('Error during bail out presence/mapping cleanup:', cleanupErr);
+        }
 
         // If the match hasn't started yet (waiting for opponent) or no opponent exists
         if (room.status === 'waiting' || !opponentId) {
             room.status = 'finished';
             room.finishReason = 'CANCELLED';
             await redisClient.set(roomId, JSON.stringify(room), 'EX', 3600);
-            io.to(roomId).emit(SERVER_EVENTS.MATCH_FINISHED, {
+
+            const cancelResult = {
                 roomId,
                 winnerId: null,
+                loserId: bailedUserId,
                 reason: 'CANCELLED',
-                result: 'CANCELLED'
-            });
+                result: 'CANCELLED',
+                finalScores: room.scores || {},
+                penalties: room.penalties || {}
+            };
+            io.to(roomId).emit(SERVER_EVENTS.MATCH_FINISHED, cancelResult);
+            socket.emit(SERVER_EVENTS.MATCH_FINISHED, cancelResult);
+            io.to(`user:${bailedUserId}`).emit(SERVER_EVENTS.MATCH_FINISHED, cancelResult);
+            if (opponentId) {
+                io.to(`user:${opponentId}`).emit(SERVER_EVENTS.MATCH_FINISHED, cancelResult);
+            }
             return;
         }
 
@@ -509,13 +530,29 @@ class RoomService {
         room.finishReason = 'FORFEIT';
         await redisClient.set(roomId, JSON.stringify(room), 'EX', 10800);
 
+        let finalResult = null;
         try {
-            const finalResult = await matchService.finalizeMatch(roomId, opponentId, 'FORFEIT');
-            if (finalResult) {
-                io.to(roomId).emit(SERVER_EVENTS.MATCH_FINISHED, finalResult);
-            }
+            finalResult = await matchService.finalizeMatch(roomId, opponentId, 'FORFEIT');
         } catch (error) {
             console.error('Error during bail out match finalization:', error);
+        }
+
+        const fallbackResult = {
+            roomId,
+            winnerId: opponentId,
+            loserId: bailedUserId,
+            reason: 'FORFEIT',
+            result: 'LOSS',
+            finalScores: room.scores || {},
+            penalties: room.penalties || {}
+        };
+
+        const resultToSend = finalResult || fallbackResult;
+        io.to(roomId).emit(SERVER_EVENTS.MATCH_FINISHED, resultToSend);
+        socket.emit(SERVER_EVENTS.MATCH_FINISHED, resultToSend);
+        io.to(`user:${bailedUserId}`).emit(SERVER_EVENTS.MATCH_FINISHED, resultToSend);
+        if (opponentId) {
+            io.to(`user:${opponentId}`).emit(SERVER_EVENTS.MATCH_FINISHED, resultToSend);
         }
     }
 
@@ -636,6 +673,17 @@ class RoomService {
             await matchService.createMatch(roomId, player1.id, player2.id);
         } catch (error) {
             console.error('Failed to create custom match in database:', error);
+        }
+
+        // Update presence for both players to in_match
+        const presenceService = require('../presence/presence.service');
+        try {
+            await Promise.all([
+                presenceService.updateStatus(player1.id, 'in_match', roomId),
+                presenceService.updateStatus(player2.id, 'in_match', roomId)
+            ]);
+        } catch (presErr) {
+            console.error('Failed to update presence in createCustomRoom:', presErr);
         }
 
         // Save to Redis

@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useSocket } from '@/contexts/SocketContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { SERVER_EVENTS, CLIENT_EVENTS } from '@/socket/events';
@@ -7,6 +8,7 @@ import { useMatchmakingStore } from '@/features/matchmaking/store/useMatchmaking
 const MatchContext = createContext(null);
 
 export const MatchProvider = ({ children, roomId }) => {
+  const queryClient = useQueryClient();
   const { socket, isConnected } = useSocket();
   const { user } = useAuth();
   
@@ -232,8 +234,11 @@ export const MatchProvider = ({ children, roomId }) => {
         timestamp: Date.now()
       }]);
 
-      // Reset the matchmaking store now that we've preserved the result locally
+      // Reset the matchmaking store and refresh profile user rating
       useMatchmakingStore.getState().reset();
+      try {
+        queryClient.invalidateQueries({ queryKey: ['user', 'me'] });
+      } catch (e) {}
     };
 
     const handlePlayerDisconnected = (payload) => {
@@ -273,7 +278,7 @@ export const MatchProvider = ({ children, roomId }) => {
       socket.off(SERVER_EVENTS.PLAYER_DISCONNECTED, handlePlayerDisconnected);
       socket.off(SERVER_EVENTS.PLAYER_RECONNECTED, handlePlayerReconnected);
     };
-  }, [socket, isConnected, roomId, opponent?.id, opponent?.username, user?.id, activeProblemId]);
+  }, [socket, isConnected, roomId, opponent?.id, opponent?.username, user?.id, activeProblemId, queryClient]);
 
   const chooseSetting = (setting, value) => {
     if (!socket || !roomId) return;
@@ -283,6 +288,33 @@ export const MatchProvider = ({ children, roomId }) => {
   const bailOut = () => {
     if (!socket || !roomId) return;
     socket.emit(CLIENT_EVENTS.BAIL_OUT, { roomId });
+
+    // For active match phases, set up a safety fallback transition to ensure the bailing user's state finishes
+    if (status !== 'waiting') {
+      setTimeout(() => {
+        setStatus(prev => {
+          if (prev !== 'finished') {
+            const oppId = opponent?.id;
+            setWinnerId(oppId || null);
+            setMatchResult(existing => existing || {
+              roomId,
+              winnerId: oppId || null,
+              loserId: user?.id,
+              reason: 'FORFEIT',
+              result: 'LOSS',
+              finalScores: scores,
+              penalties
+            });
+            useMatchmakingStore.getState().reset();
+            try {
+              queryClient.invalidateQueries({ queryKey: ['user', 'me'] });
+            } catch (e) {}
+            return 'finished';
+          }
+          return prev;
+        });
+      }, 700);
+    }
   };
 
   const value = {
