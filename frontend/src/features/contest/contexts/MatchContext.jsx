@@ -33,6 +33,13 @@ export const MatchProvider = ({ children, roomId }) => {
   const [winnerId, setWinnerId] = useState(null);
   const [setup, setSetup] = useState(storeMetadata?.setup || null);
 
+  // Sync opponent from store if not already set
+  useEffect(() => {
+    if (storeOpponent && (!opponent || !opponent.username)) {
+      setOpponent(prev => ({ ...(prev || {}), ...storeOpponent }));
+    }
+  }, [storeOpponent]);
+
   // Emit JOIN_ROOM when socket connects
   useEffect(() => {
     if (!socket || !isConnected || !roomId) return;
@@ -55,15 +62,16 @@ export const MatchProvider = ({ children, roomId }) => {
         if (payload.room.winner) setWinnerId(payload.room.winner);
         
         // Find opponent
-        if (user?.id) {
+        if (user?.id && payload.room.players) {
           const pIds = Object.keys(payload.room.players);
-          const oppId = pIds.find(id => id !== user.id.toString());
-          if (oppId) {
-            setOpponent({ 
+          const oppId = pIds.find(id => String(id) !== String(user.id));
+          if (oppId && payload.room.players[oppId]) {
+            setOpponent(prev => ({ 
+              ...(prev || {}),
               id: oppId, 
               ...payload.room.players[oppId],
               disconnected: payload.room.players[oppId].disconnected || false
-            });
+            }));
           }
 
           // Hydrate solved problems from room state

@@ -11,7 +11,31 @@ const registerHandlers = (io, socket) => {
     socket.on(CLIENT_EVENTS.JOIN_QUEUE, async (payload = {}) => {
         try {
             const mode = payload.mode || 'ranked';
-            await matchmakingService.joinQueue(socket.user.id, socket.id, socket.user.rating, payload.attemptId, mode);
+            
+            // Refresh username and live rating directly from database
+            let username = socket.user.username;
+            let rating = socket.user.rating;
+            try {
+                const prisma = require('../config/prisma');
+                const dbUser = await prisma.user.findUnique({
+                    where: { id: socket.user.id },
+                    select: { username: true, rating: true }
+                });
+                if (dbUser) {
+                    if (dbUser.username) {
+                        username = dbUser.username;
+                        socket.user.username = dbUser.username;
+                    }
+                    if (dbUser.rating !== undefined && dbUser.rating !== null) {
+                        rating = dbUser.rating;
+                        socket.user.rating = dbUser.rating;
+                    }
+                }
+            } catch (dbErr) {
+                console.warn('Failed to load fresh user rating from DB for queue, using socket cache:', dbErr);
+            }
+
+            await matchmakingService.joinQueue(socket.user.id, socket.id, username, rating, payload.attemptId, mode);
             socket.emit(SERVER_EVENTS.QUEUE_JOINED, { success: true, attemptId: payload.attemptId, mode });
             // Attempt match immediately
             await matchmakingService.attemptMatch(io);

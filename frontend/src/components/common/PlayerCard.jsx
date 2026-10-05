@@ -42,7 +42,7 @@ export const PlayerCard = ({
         <div className="flex flex-col flex-1 truncate">
           <div className="flex items-center gap-2">
             <span className="font-semibold text-foreground truncate text-sm">
-              {user.username}
+              {user.username || 'Player'}
             </span>
             {isLeader && <Crown size={14} className="text-yellow-500 shrink-0" />}
             {title && (
@@ -55,7 +55,7 @@ export const PlayerCard = ({
           <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1">
             <div className="flex items-center gap-1">
               <Trophy size={12} className="text-primary/70" />
-              <span>{user.rating || 1200}</span>
+              <span>{user.rating ?? 1500}</span>
             </div>
             {rank && (
               <div className="flex items-center gap-1">

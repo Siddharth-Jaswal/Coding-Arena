@@ -81,12 +81,47 @@ class RoomService {
             status = 'countdown';
         }
 
+        // Fetch up-to-date user details from DB to guarantee live username and Elo rating
+        const playerIds = [player1.id, player2.id].filter(Boolean);
+        let p1Username = player1.username;
+        let p1Rating = player1.rating;
+        let p1Avatar = player1.avatar;
+        let p2Username = player2.username;
+        let p2Rating = player2.rating;
+        let p2Avatar = player2.avatar;
+
+        try {
+            const dbUsers = await prisma.user.findMany({
+                where: { id: { in: playerIds } },
+                select: { id: true, username: true, rating: true, avatar: true }
+            });
+            const p1Db = dbUsers.find(u => u.id === player1.id);
+            if (p1Db) {
+                p1Username = p1Db.username || p1Username;
+                p1Rating = p1Db.rating ?? p1Rating;
+                p1Avatar = p1Db.avatar || p1Avatar;
+            }
+            const p2Db = dbUsers.find(u => u.id === player2.id);
+            if (p2Db) {
+                p2Username = p2Db.username || p2Username;
+                p2Rating = p2Db.rating ?? p2Rating;
+                p2Avatar = p2Db.avatar || p2Avatar;
+            }
+        } catch (dbErr) {
+            console.error('Failed to fetch user profiles for room creation, using queued metadata:', dbErr);
+        }
+
+        p1Username = p1Username || 'Player 1';
+        p1Rating = p1Rating ?? 1500;
+        p2Username = p2Username || 'Player 2';
+        p2Rating = p2Rating ?? 1500;
+
         const roomState = {
             roomId,
             mode: isTossMode ? 'toss' : 'ranked',
             players: {
-                [player1.id]: { username: player1.username || 'Player 1', rating: player1.rating, ready: false, disconnected: false },
-                [player2.id]: { username: player2.username || 'Player 2', rating: player2.rating, ready: false, disconnected: false }
+                [player1.id]: { id: player1.id, username: p1Username, rating: p1Rating, avatar: p1Avatar, ready: false, disconnected: false },
+                [player2.id]: { id: player2.id, username: p2Username, rating: p2Rating, avatar: p2Avatar, ready: false, disconnected: false }
             },
             setup,
             problems: selectedProblems,
@@ -141,7 +176,7 @@ class RoomService {
         p1Target.emit(SERVER_EVENTS.MATCH_FOUND, {
             roomId,
             attemptId: player1.attemptId,
-            opponent: { id: player2.id, username: player2.username || 'Player 2', rating: player2.rating },
+            opponent: { id: player2.id, username: p2Username, rating: p2Rating, avatar: p2Avatar },
             mode: roomState.mode
         });
         p1Target.emit(SERVER_EVENTS.ROOM_CREATED, { ...roomPayload, attemptId: player1.attemptId });
@@ -154,7 +189,7 @@ class RoomService {
         p2Target.emit(SERVER_EVENTS.MATCH_FOUND, {
             roomId,
             attemptId: player2.attemptId,
-            opponent: { id: player1.id, username: player1.username || 'Player 1', rating: player1.rating },
+            opponent: { id: player1.id, username: p1Username, rating: p1Rating, avatar: p1Avatar },
             mode: roomState.mode
         });
         p2Target.emit(SERVER_EVENTS.ROOM_CREATED, { ...roomPayload, attemptId: player2.attemptId });

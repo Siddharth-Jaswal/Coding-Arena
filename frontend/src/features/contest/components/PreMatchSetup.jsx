@@ -95,8 +95,11 @@ export const PreMatchSetup = () => {
   const availableTimesPerQuestion = setup?.availableTimesPerQuestion || [10, 15, 20, 25, 30];
 
   const currentUserId = user?.id?.toString();
-  const opponentName = opponent?.username || 'Opponent';
-  const myName = user?.username || 'You';
+  const opponentName = opponent?.username || (room?.players && Object.entries(room.players).find(([id]) => id !== currentUserId)?.[1]?.username) || 'Opponent';
+  const myName = user?.username || (currentUserId && room?.players?.[currentUserId]?.username) || 'You';
+
+  const myRating = user?.rating || (currentUserId && room?.players?.[currentUserId]?.rating) || 1500;
+  const opponentRating = opponent?.rating || (room?.players && Object.entries(room.players).find(([id]) => id !== currentUserId)?.[1]?.rating) || 1500;
 
   const isTopicDone = Boolean(choices.topic);
   const isCountDone = Boolean(choices.questionCount);
@@ -162,7 +165,11 @@ export const PreMatchSetup = () => {
                 <span className="truncate">{myName}</span>
                 <span className="text-[9px] sm:text-[10px] px-1 sm:px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 font-semibold shrink-0">You</span>
               </div>
-              <div className="text-[10px] sm:text-[11px] text-neutral-400 font-mono">Assigned: <strong className="text-amber-300">HEADS</strong></div>
+              <div className="text-[10px] sm:text-[11px] text-neutral-400 font-mono flex items-center gap-2 flex-wrap">
+                <span>Assigned: <strong className="text-amber-300">HEADS</strong></span>
+                <span className="text-neutral-600">•</span>
+                <span className="text-amber-400 font-semibold">★ {myRating}</span>
+              </div>
             </div>
           </div>
 
@@ -176,7 +183,11 @@ export const PreMatchSetup = () => {
           <div className="flex items-center gap-2 sm:gap-3 text-right min-w-0">
             <div className="min-w-0">
               <div className="text-xs sm:text-sm font-bold text-white truncate">{opponentName}</div>
-              <div className="text-[10px] sm:text-[11px] text-neutral-400 font-mono">Assigned: <strong className="text-neutral-300">TAILS</strong></div>
+              <div className="text-[10px] sm:text-[11px] text-neutral-400 font-mono flex items-center justify-end gap-2 flex-wrap">
+                <span className="text-amber-400 font-semibold">★ {opponentRating}</span>
+                <span className="text-neutral-600">•</span>
+                <span>Assigned: <strong className="text-neutral-300">TAILS</strong></span>
+              </div>
             </div>
             <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-neutral-600/20 border border-neutral-500/30 flex items-center justify-center font-bold text-neutral-300 text-xs sm:text-base shrink-0">
               {opponentName[0]?.toUpperCase()}

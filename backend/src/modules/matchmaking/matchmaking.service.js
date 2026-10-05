@@ -14,7 +14,7 @@ class MatchmakingService {
      * Joins the matchmaking queue.
      * Safely updates socketId and metadata without throwing if player was already recorded.
      */
-    async joinQueue(userId, socketId, rating, attemptId, mode = 'ranked') {
+    async joinQueue(userId, socketId, username, rating, attemptId, mode = 'ranked') {
         const validMode = mode === 'toss' ? 'toss' : 'ranked';
         const queueKey = this.getQueueKey(validMode);
 
@@ -31,8 +31,9 @@ class MatchmakingService {
         // Save player metadata for matchmaking
         multi.set(`matchmaking:player:${userId}`, JSON.stringify({
             socketId,
+            username: username || 'Player',
             joinedAt: new Date().toISOString(),
-            rating: rating || 1500,
+            rating: rating ?? 1500,
             attemptId,
             mode: validMode
         }), 'EX', 3600); // expire in 1 hour if stuck
@@ -167,8 +168,8 @@ class MatchmakingService {
                     );
                 } catch (error) {
                     console.error(`Matchmaking room creation failed for mode ${mode}, re-queueing:`, error);
-                    await this.joinQueue(player1Id, p1Meta.socketId, p1Meta.rating, p1Meta.attemptId, mode);
-                    await this.joinQueue(player2Id, p2Meta.socketId, p2Meta.rating, p2Meta.attemptId, mode);
+                    await this.joinQueue(player1Id, p1Meta.socketId, p1Meta.username, p1Meta.rating, p1Meta.attemptId, mode);
+                    await this.joinQueue(player2Id, p2Meta.socketId, p2Meta.username, p2Meta.rating, p2Meta.attemptId, mode);
                     break;
                 }
             }

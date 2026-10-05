@@ -36,7 +36,8 @@ class AuthService {
         const token = generateToken({
             userId: user.id,
             username: user.username,
-            email: user.email
+            email: user.email,
+            rating: user.rating
         });
 
         return {
@@ -70,7 +71,8 @@ class AuthService {
         const token = generateToken({
             userId: user.id,
             username: user.username,
-            email: user.email
+            email: user.email,
+            rating: user.rating
         });
 
         return {

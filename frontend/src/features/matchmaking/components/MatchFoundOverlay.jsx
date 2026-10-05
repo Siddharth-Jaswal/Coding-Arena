@@ -89,7 +89,7 @@ export const MatchFoundOverlay = () => {
                   <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-white">{user?.username || 'You'}</h3>
                   <div className="flex items-center gap-1.5 justify-center text-yellow-400 mt-1">
                     <Trophy className="w-4 h-4" />
-                    <span className="font-semibold text-sm sm:text-base">{user?.rating || 1500}</span>
+                    <span className="font-semibold text-sm sm:text-base">{user?.rating ?? 1500}</span>
                   </div>
                 </div>
               </motion.div>
@@ -121,7 +121,7 @@ export const MatchFoundOverlay = () => {
                   <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-white">{opponent?.username || 'Opponent'}</h3>
                   <div className="flex items-center gap-1.5 justify-center text-yellow-400 mt-1">
                     <Trophy className="w-4 h-4" />
-                    <span className="font-semibold text-sm sm:text-base">{opponent?.rating || 1500}</span>
+                    <span className="font-semibold text-sm sm:text-base">{opponent?.rating ?? 1500}</span>
                   </div>
                 </div>
               </motion.div>
