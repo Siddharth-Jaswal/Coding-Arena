@@ -56,7 +56,12 @@ export const Navbar = ({ variant = "landing" }) => {
       <div className="container flex h-16 items-center justify-between px-4 md:px-8">
         {/* Brand */}
         <div className="flex items-center gap-6">
-          <Link to="/" className="flex items-center space-x-2">
+          <Link to="/" className="flex items-center space-x-2.5 group">
+            <img 
+              src="/favicon-32x32.png" 
+              alt="Coding Arena Logo" 
+              className="w-7 h-7 rounded-lg shadow-sm border border-white/10 group-hover:scale-105 transition-transform" 
+            />
             <span className="text-xl font-bold tracking-tighter text-foreground">
               CODING<span className="text-primary">ARENA</span>
             </span>
