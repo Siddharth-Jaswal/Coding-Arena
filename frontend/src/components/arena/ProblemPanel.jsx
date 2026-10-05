@@ -5,6 +5,7 @@ import { SubmissionsTab } from '@/components/arena/SubmissionsTab';
 
 export const ProblemPanel = ({ problem, isLoading }) => {
   const [activeTab, setActiveTab] = useState('description'); // 'description' | 'submissions'
+  const [submissionCount, setSubmissionCount] = useState(null);
 
   if (isLoading) {
     return (
@@ -48,6 +49,15 @@ export const ProblemPanel = ({ problem, isLoading }) => {
           >
             <History size={13} className={activeTab === 'submissions' ? 'text-primary' : ''} />
             <span>Submissions</span>
+            {submissionCount != null && (
+              <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-semibold leading-none ${
+                activeTab === 'submissions' 
+                  ? 'bg-primary/20 text-primary border border-primary/30' 
+                  : 'bg-white/10 text-neutral-400'
+              }`}>
+                {submissionCount}
+              </span>
+            )}
           </button>
         </div>
 
@@ -65,75 +75,78 @@ export const ProblemPanel = ({ problem, isLoading }) => {
       </div>
 
       {/* Tab Content Views */}
-      <div className="flex-1 overflow-hidden min-h-0">
-        {activeTab === 'submissions' ? (
-          <SubmissionsTab problemId={problem.id} />
-        ) : (
-          <div className="h-full overflow-y-auto custom-scrollbar p-6">
-            <div className="max-w-3xl mx-auto space-y-10 pb-24">
-              
-              {/* Description Section */}
-              <section>
-                <h2 className="text-xl font-bold mb-4 text-foreground/90">Description</h2>
-                <div className="prose prose-invert max-w-none text-muted-foreground leading-relaxed whitespace-pre-wrap text-sm">
-                  {problem.statement}
-                </div>
-              </section>
+      <div className="flex-1 overflow-hidden min-h-0 relative">
+        <div className={`h-full ${activeTab === 'submissions' ? 'block' : 'hidden'}`}>
+          <SubmissionsTab 
+            problemId={problem.id} 
+            onSubmissionsLoaded={setSubmissionCount} 
+          />
+        </div>
 
-              {/* Input / Output Formats */}
-              <section className="space-y-6">
-                <div>
-                  <h3 className="text-sm font-semibold mb-2.5 text-foreground/80 uppercase tracking-wider text-xs">
-                    Input Format
-                  </h3>
-                  <div className="prose prose-invert max-w-none text-muted-foreground text-sm whitespace-pre-wrap bg-white/[0.02] p-4 rounded-xl border border-white/5">
-                    {problem.input_format}
-                  </div>
-                </div>
-                
-                <div>
-                  <h3 className="text-sm font-semibold mb-2.5 text-foreground/80 uppercase tracking-wider text-xs">
-                    Output Format
-                  </h3>
-                  <div className="prose prose-invert max-w-none text-muted-foreground text-sm whitespace-pre-wrap bg-white/[0.02] p-4 rounded-xl border border-white/5">
-                    {problem.output_format}
-                  </div>
-                </div>
-              </section>
+        <div className={`h-full overflow-y-auto custom-scrollbar p-6 ${activeTab === 'description' ? 'block' : 'hidden'}`}>
+          <div className="max-w-3xl mx-auto space-y-10 pb-24">
+            
+            {/* Description Section */}
+            <section>
+              <h2 className="text-xl font-bold mb-4 text-foreground/90">Description</h2>
+              <div className="prose prose-invert max-w-none text-muted-foreground leading-relaxed whitespace-pre-wrap text-sm">
+                {problem.statement}
+              </div>
+            </section>
 
-              {/* Constraints Section */}
-              <section>
+            {/* Input / Output Formats */}
+            <section className="space-y-6">
+              <div>
                 <h3 className="text-sm font-semibold mb-2.5 text-foreground/80 uppercase tracking-wider text-xs">
-                  Constraints
+                  Input Format
                 </h3>
-                <div className="prose prose-invert max-w-none text-muted-foreground text-sm whitespace-pre-wrap bg-white/[0.02] p-4 rounded-xl border border-white/5 font-mono">
-                  {problem.constraints}
+                <div className="prose prose-invert max-w-none text-muted-foreground text-sm whitespace-pre-wrap bg-white/[0.02] p-4 rounded-xl border border-white/5">
+                  {problem.input_format}
                 </div>
-              </section>
+              </div>
+              
+              <div>
+                <h3 className="text-sm font-semibold mb-2.5 text-foreground/80 uppercase tracking-wider text-xs">
+                  Output Format
+                </h3>
+                <div className="prose prose-invert max-w-none text-muted-foreground text-sm whitespace-pre-wrap bg-white/[0.02] p-4 rounded-xl border border-white/5">
+                  {problem.output_format}
+                </div>
+              </div>
+            </section>
 
-              {/* Sample Tests Section (Examples) */}
-              <section>
-                <h2 className="text-lg font-bold mb-4 text-foreground/90">Examples</h2>
-                {problem.sample_tests && problem.sample_tests.length > 0 ? (
-                  <div className="flex flex-col gap-5">
-                    {problem.sample_tests.map((test, idx) => (
-                      <div key={test.id || idx} className="space-y-2">
-                        <h4 className="text-xs font-semibold text-neutral-400">Example {idx + 1}</h4>
-                        <SampleTestCard 
-                          input={test.input || test.input_data} 
-                          output={test.output || test.expected_output} 
-                        />
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-sm text-muted-foreground italic">No sample tests available.</div>
-                )}
-              </section>
+            {/* Constraints Section */}
+            <section>
+              <h3 className="text-sm font-semibold mb-2.5 text-foreground/80 uppercase tracking-wider text-xs">
+                Constraints
+              </h3>
+              <div className="prose prose-invert max-w-none text-muted-foreground text-sm whitespace-pre-wrap bg-white/[0.02] p-4 rounded-xl border border-white/5 font-mono">
+                {problem.constraints}
+              </div>
+            </section>
 
-            </div>
+            {/* Sample Tests Section (Examples) */}
+            <section>
+              <h2 className="text-lg font-bold mb-4 text-foreground/90">Examples</h2>
+              {problem.sample_tests && problem.sample_tests.length > 0 ? (
+                <div className="flex flex-col gap-5">
+                  {problem.sample_tests.map((test, idx) => (
+                    <div key={test.id || idx} className="space-y-2">
+                      <h4 className="text-xs font-semibold text-neutral-400">Example {idx + 1}</h4>
+                      <SampleTestCard 
+                        input={test.input || test.input_data} 
+                        output={test.output || test.expected_output} 
+                      />
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-sm text-muted-foreground italic">No sample tests available.</div>
+              )}
+            </section>
+
           </div>
-        )}
+        </div>
       </div>
     </div>
   );

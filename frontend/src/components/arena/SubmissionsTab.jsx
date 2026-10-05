@@ -13,7 +13,8 @@ import {
   ChevronRight, 
   Loader2, 
   Calendar,
-  Sparkles
+  Sparkles,
+  RotateCw
 } from 'lucide-react';
 import { submissionApi } from '@/api/submissions';
 import { useWorkspace } from '@/features/workspace/contexts/WorkspaceContext';
@@ -119,33 +120,45 @@ const getVerdictConfig = (verdict, status) => {
   };
 };
 
-export const SubmissionsTab = ({ problemId }) => {
+export const SubmissionsTab = ({ problemId, onSubmissionsLoaded }) => {
   const [submissions, setSubmissions] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [selectedSubmission, setSelectedSubmission] = useState(null);
   const [copied, setCopied] = useState(false);
   const [restored, setRestored] = useState(false);
 
+  const workspace = useWorkspace();
   const {
     submissionState,
     setEditorCode,
     setActiveLanguage,
-    setActiveMobileTab
-  } = useWorkspace();
+    setActiveMobileTab,
+    activeProblem
+  } = workspace || {};
+
+  const effectiveProblemId = problemId || activeProblem?.id;
 
   const fetchSubmissions = useCallback(async () => {
-    if (!problemId) return;
+    if (!effectiveProblemId) return;
     setIsLoading(true);
     try {
-      const res = await submissionApi.getProblemSubmissions(problemId);
-      const data = Array.isArray(res.data) ? res.data : (res.data?.data || []);
-      setSubmissions(data);
+      const res = await submissionApi.getProblemSubmissions(effectiveProblemId);
+      // Support both unwrapped array (from axios response interceptor) and nested data formats
+      const list = Array.isArray(res)
+        ? res
+        : Array.isArray(res?.data)
+        ? res.data
+        : Array.isArray(res?.submissions)
+        ? res.submissions
+        : [];
+      setSubmissions(list);
+      onSubmissionsLoaded?.(list.length);
     } catch (err) {
       console.error('Failed to load past submissions:', err);
     } finally {
       setIsLoading(false);
     }
-  }, [problemId]);
+  }, [effectiveProblemId, onSubmissionsLoaded]);
 
   useEffect(() => {
     fetchSubmissions();
@@ -154,7 +167,6 @@ export const SubmissionsTab = ({ problemId }) => {
   // Auto-refresh when an active submission completes
   useEffect(() => {
     if (submissionState?.activeSubmission?.status === 'completed' || submissionState?.activeSubmission?.verdict) {
-      // Add a small delay for DB write propagation
       const timer = setTimeout(() => {
         fetchSubmissions();
       }, 700);
@@ -328,6 +340,21 @@ export const SubmissionsTab = ({ problemId }) => {
     <div className="h-full flex flex-col bg-background">
       {/* Overview Stats Bar */}
       <div className="px-6 py-4 border-b border-border/40 bg-neutral-950/40 backdrop-blur shrink-0">
+        <div className="flex items-center justify-between mb-3">
+          <span className="text-[11px] font-semibold text-neutral-400 uppercase tracking-wider">
+            Performance Overview
+          </span>
+          <button
+            onClick={() => fetchSubmissions()}
+            disabled={isLoading}
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium text-neutral-400 hover:text-white bg-white/5 hover:bg-white/10 border border-white/5 transition-all"
+            title="Refresh submissions"
+          >
+            <RotateCw size={11} className={isLoading ? 'animate-spin text-primary' : ''} />
+            <span>Refresh</span>
+          </button>
+        </div>
+
         <div className="grid grid-cols-3 gap-3">
           <div className="p-3 rounded-xl bg-white/[0.03] border border-white/5 flex flex-col">
             <span className="text-[11px] font-medium text-neutral-400 uppercase tracking-wider">
