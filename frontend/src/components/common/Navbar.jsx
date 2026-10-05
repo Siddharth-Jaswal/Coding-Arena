@@ -5,8 +5,10 @@ import { Button } from "../ui/Button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSocket } from "@/contexts/SocketContext";
 import { SOCKET_STATUS } from "@/socket/events";
-import { Swords, Wifi, WifiOff, Loader2, Menu, X, LayoutDashboard, Code2, User, LogOut, LogIn, UserPlus } from "lucide-react";
+import { Swords, Wifi, WifiOff, Loader2, Menu, X, LayoutDashboard, Code2, User, LogOut, LogIn, UserPlus, Users } from "lucide-react";
 import { TierBadge } from "@/components/common/TierBadge";
+import { FriendsDrawer } from "@/features/friends/components/FriendsDrawer";
+import { IncomingChallengeModal } from "@/features/challenge/components/IncomingChallengeModal";
 
 const ConnectionIndicator = () => {
   const { status } = useSocket();
@@ -40,6 +42,7 @@ export const Navbar = ({ variant = "landing" }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [friendsDrawerOpen, setFriendsDrawerOpen] = useState(false);
 
   // Close mobile drawer on route change
   useEffect(() => {
@@ -125,6 +128,15 @@ export const Navbar = ({ variant = "landing" }) => {
           ) : (
             <>
               <ConnectionIndicator />
+              <Button
+                variant="ghost"
+                size="sm"
+                className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 text-neutral-300 hover:text-white hover:bg-white/5 border border-white/5"
+                onClick={() => setFriendsDrawerOpen(true)}
+              >
+                <Users className="w-4 h-4 text-primary" />
+                <span>Friends</span>
+              </Button>
               <Button
                 variant="outline"
                 size="sm"
@@ -244,6 +256,17 @@ export const Navbar = ({ variant = "landing" }) => {
                     </Link>
 
                     <button
+                      onClick={() => {
+                        setFriendsDrawerOpen(true);
+                        setMobileMenuOpen(false);
+                      }}
+                      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-neutral-200 hover:bg-white/5 transition-colors text-left"
+                    >
+                      <Users size={17} className="text-primary" />
+                      Friends & 1v1
+                    </button>
+
+                    <button
                       onClick={handleLogout}
                       className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-rose-400 hover:bg-rose-500/10 transition-colors text-left"
                     >
@@ -283,6 +306,14 @@ export const Navbar = ({ variant = "landing" }) => {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Global Friends Drawer & Incoming Challenge Modal */}
+      {isAuthenticated && (
+        <>
+          <FriendsDrawer isOpen={friendsDrawerOpen} onClose={() => setFriendsDrawerOpen(false)} />
+          <IncomingChallengeModal />
+        </>
+      )}
     </header>
   );
 };

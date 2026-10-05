@@ -15,6 +15,7 @@ import RegisterPage from '../pages/RegisterPage';
 import DashboardPage from '../pages/DashboardPage';
 import ProfilePage from '../pages/ProfilePage';
 import MatchmakingPage from '../features/matchmaking/pages/MatchmakingPage';
+import { PrivateLobbyPage } from '../features/lobby/pages/PrivateLobbyPage';
 
 import { ProtectedRoute } from '../components/auth/ProtectedRoute';
 import { PublicOnlyRoute } from '../components/auth/PublicOnlyRoute';
@@ -86,6 +87,14 @@ export const router = createBrowserRouter([
             <MatchmakingPage />
           </ProtectedRoute>
         ) 
+      },
+      {
+        path: 'lobby/:lobbyId',
+        element: (
+          <ProtectedRoute>
+            <PrivateLobbyPage />
+          </ProtectedRoute>
+        )
       },
     ],
   },

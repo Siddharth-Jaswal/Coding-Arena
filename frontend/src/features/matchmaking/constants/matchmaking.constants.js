@@ -31,7 +31,7 @@ export const GAME_MODES = [
     title: 'Challenge Friend',
     description: 'Invite a friend for a private 1v1 showdown.',
     estimatedDuration: 'Custom',
-    status: 'Coming Soon',
+    status: 'Available',
     icon: 'Users'
   }
 ];

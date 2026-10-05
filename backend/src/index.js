@@ -8,6 +8,7 @@ const runRoutes = require('./routes/runRoutes');
 const authRoutes = require('./modules/auth/auth.routes');
 const userRoutes = require('./modules/users/user.routes');
 const matchmakingRoutes = require('./modules/matchmaking/matchmaking.routes');
+const friendRoutes = require('./modules/friends/friend.routes');
 const { initializeSocket } = require('./socket');
 const http = require('http');
 
@@ -50,6 +51,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/submissions', submissionRoutes);
 app.use('/api/run', runRoutes);
 app.use('/api/matchmaking', matchmakingRoutes);
+app.use('/api/friends', friendRoutes);
 
 // Initialize Socket.io
 initializeSocket(server);

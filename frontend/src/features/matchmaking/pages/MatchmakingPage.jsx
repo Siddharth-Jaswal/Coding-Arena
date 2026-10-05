@@ -15,18 +15,30 @@ import { RecentMatchesCard } from '../components/RecentMatchesCard';
 import { FutureFeaturesGrid } from '../components/FutureFeaturesGrid';
 import { MatchFoundOverlay } from '../components/MatchFoundOverlay';
 
+import { FriendsDrawer } from '@/features/friends/components/FriendsDrawer';
+
 const MatchmakingPage = () => {
   const { status, elapsedTime, estimatedTime, error } = useMatchmakingStore();
   const { findMatch, cancelSearch } = useMatchmakingSocket();
   
   const [selectedMode, setSelectedMode] = useState('ranked');
+  const [friendsDrawerOpen, setFriendsDrawerOpen] = useState(false);
 
   // Prevent modifying mode while queued/searching
   const isLocked = status !== MATCHMAKING_STATES.IDLE && status !== MATCHMAKING_STATES.CANCELLED;
 
+  const handleStartQueueOrChallenge = () => {
+    if (selectedMode === 'challenge') {
+      setFriendsDrawerOpen(true);
+      return;
+    }
+    findMatch(selectedMode);
+  };
+
   return (
     <PageWrapper>
       <MatchFoundOverlay />
+      <FriendsDrawer isOpen={friendsDrawerOpen} onClose={() => setFriendsDrawerOpen(false)} />
       <div className="fixed inset-0 z-0 pointer-events-none">
         <GridOverlay />
       </div>
@@ -52,7 +64,7 @@ const MatchmakingPage = () => {
                 status={status} 
                 elapsedTime={elapsedTime} 
                 estimatedTime={estimatedTime}
-                onFindMatch={() => findMatch(selectedMode)}
+                onFindMatch={handleStartQueueOrChallenge}
                 onCancel={cancelSearch}
               />
               
@@ -65,7 +77,14 @@ const MatchmakingPage = () => {
                       key={mode.id} 
                       mode={mode} 
                       isSelected={selectedMode === mode.id}
-                      onClick={() => !isLocked && setSelectedMode(mode.id)}
+                      onClick={() => {
+                        if (!isLocked) {
+                          setSelectedMode(mode.id);
+                          if (mode.id === 'challenge') {
+                            setFriendsDrawerOpen(true);
+                          }
+                        }
+                      }}
                     />
                   ))}
                 </div>

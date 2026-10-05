@@ -48,6 +48,17 @@ const initializeSocket = (httpServer) => {
         // Join personal user room so events can reliably reach this user regardless of socket reconnects
         socket.join(`user:${socket.user.id}`);
 
+        // Mark user online in Redis presence
+        const presenceService = require('../modules/presence/presence.service');
+        try {
+            await presenceService.markOnline(socket.user.id, socket.id, {
+                username: socket.user.username,
+                rating: socket.user.rating
+            });
+        } catch (pErr) {
+            console.error('Error updating presence on connect:', pErr);
+        }
+
         // Check if user is already in a match and silently rejoin them
         try {
             await roomService.handleReconnect(io, socket, socket.user.id);
