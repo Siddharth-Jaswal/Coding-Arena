@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Swords, Check, X, ShieldAlert, Zap } from 'lucide-react';
@@ -99,14 +100,14 @@ export const IncomingChallengeModal = () => {
     setChallenge(null);
   };
 
-  if (!challenge) return null;
+  if (!challenge || typeof document === 'undefined') return null;
 
   const { challenger } = challenge;
   const progressPercent = (secondsRemaining / 30) * 100;
 
-  return (
+  return createPortal(
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md">
+      <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/75 backdrop-blur-md">
         <motion.div
           initial={{ opacity: 0, scale: 0.9, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -191,6 +192,7 @@ export const IncomingChallengeModal = () => {
           </div>
         </motion.div>
       </div>
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 };

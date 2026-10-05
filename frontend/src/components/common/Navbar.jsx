@@ -9,6 +9,7 @@ import { Swords, Wifi, WifiOff, Loader2, Menu, X, LayoutDashboard, Code2, User, 
 import { TierBadge } from "@/components/common/TierBadge";
 import { FriendsDrawer } from "@/features/friends/components/FriendsDrawer";
 import { IncomingChallengeModal } from "@/features/challenge/components/IncomingChallengeModal";
+import { friendsApi } from "@/api/friends";
 
 const ConnectionIndicator = () => {
   const { status } = useSocket();
@@ -43,6 +44,47 @@ export const Navbar = ({ variant = "landing" }) => {
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [friendsDrawerOpen, setFriendsDrawerOpen] = useState(false);
+  const [friendStats, setFriendStats] = useState({ onlineCount: 0, pendingRequestsCount: 0 });
+
+  // Sync friend count & pending request badges
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    let isMounted = true;
+    const loadFriendCounts = async () => {
+      try {
+        const [friendsRes, requestsRes] = await Promise.allSettled([
+          friendsApi.getFriends(),
+          friendsApi.getRequests()
+        ]);
+
+        let onlineCount = 0;
+        if (friendsRes.status === 'fulfilled') {
+          const list = Array.isArray(friendsRes.value) ? friendsRes.value : (friendsRes.value?.friends || friendsRes.value?.data || []);
+          onlineCount = list.filter(f => f.presence?.isOnline).length;
+        }
+
+        let pendingCount = 0;
+        if (requestsRes.status === 'fulfilled') {
+          const incoming = requestsRes.value?.incoming || [];
+          pendingCount = incoming.length;
+        }
+
+        if (isMounted) {
+          setFriendStats({ onlineCount, pendingRequestsCount: pendingCount });
+        }
+      } catch (e) {
+        // silent catch
+      }
+    };
+
+    loadFriendCounts();
+    const interval = setInterval(loadFriendCounts, 15000);
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, [isAuthenticated, friendsDrawerOpen]);
 
   // Close mobile drawer on route change
   useEffect(() => {
@@ -131,11 +173,28 @@ export const Navbar = ({ variant = "landing" }) => {
               <Button
                 variant="ghost"
                 size="sm"
-                className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 text-neutral-300 hover:text-white hover:bg-white/5 border border-white/5"
+                className="hidden sm:inline-flex items-center gap-2 px-3 py-1.5 text-neutral-300 hover:text-white hover:bg-white/5 border border-white/5 rounded-xl transition-all hover:scale-105"
                 onClick={() => setFriendsDrawerOpen(true)}
+                title="Friends, 1v1 Showdown & Requests"
               >
-                <Users className="w-4 h-4 text-primary" />
+                <div className="relative">
+                  <Users className="w-4 h-4 text-primary" />
+                  {friendStats.pendingRequestsCount > 0 && (
+                    <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-rose-500 animate-ping" />
+                  )}
+                </div>
                 <span>Friends</span>
+                {friendStats.onlineCount > 0 && (
+                  <span className="flex items-center gap-1 text-[11px] font-bold text-emerald-400 bg-emerald-500/10 px-1.5 py-0.2 rounded-md border border-emerald-500/20">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                    {friendStats.onlineCount}
+                  </span>
+                )}
+                {friendStats.pendingRequestsCount > 0 && (
+                  <span className="px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-rose-500 text-white shadow-sm">
+                    {friendStats.pendingRequestsCount}
+                  </span>
+                )}
               </Button>
               <Button
                 variant="outline"
@@ -260,10 +319,25 @@ export const Navbar = ({ variant = "landing" }) => {
                         setFriendsDrawerOpen(true);
                         setMobileMenuOpen(false);
                       }}
-                      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-neutral-200 hover:bg-white/5 transition-colors text-left"
+                      className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium text-neutral-200 hover:bg-white/5 transition-colors text-left"
                     >
-                      <Users size={17} className="text-primary" />
-                      Friends & 1v1
+                      <div className="flex items-center gap-3">
+                        <Users size={17} className="text-primary" />
+                        <span>Friends & 1v1</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {friendStats.onlineCount > 0 && (
+                          <span className="flex items-center gap-1 text-[11px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                            {friendStats.onlineCount} online
+                          </span>
+                        )}
+                        {friendStats.pendingRequestsCount > 0 && (
+                          <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-500 text-white">
+                            {friendStats.pendingRequestsCount} new
+                          </span>
+                        )}
+                      </div>
                     </button>
 
                     <button

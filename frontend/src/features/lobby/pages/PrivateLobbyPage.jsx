@@ -16,7 +16,8 @@ import {
   Flame, 
   Code2,
   Lock,
-  Zap
+  Zap,
+  X
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSocket } from '@/contexts/SocketContext';
@@ -54,8 +55,32 @@ export const PrivateLobbyPage = () => {
   const [chatInput, setChatInput] = useState('');
   const [countdown, setCountdown] = useState(null);
   const [isDisbanded, setIsDisbanded] = useState(null);
+  const [settingsNotice, setSettingsNotice] = useState(null);
 
+  const prevSettingsStrRef = useRef(null);
   const chatBottomRef = useRef(null);
+
+  const isHost = lobby?.creator?.id === user?.id;
+  const isGuest = lobby?.guest?.id === user?.id;
+
+  // Track match settings updates to highlight them on the left-side UI
+  useEffect(() => {
+    if (!lobby?.settings) return;
+    const currentStr = JSON.stringify(lobby.settings);
+    if (prevSettingsStrRef.current && prevSettingsStrRef.current !== currentStr) {
+      setSettingsNotice({
+        message: isHost
+          ? 'Match rules updated and synced with opponent.'
+          : 'Match rules updated by host! Please review and click Ready.',
+        timestamp: Date.now()
+      });
+      const timer = setTimeout(() => {
+        setSettingsNotice(null);
+      }, 7000);
+      return () => clearTimeout(timer);
+    }
+    prevSettingsStrRef.current = currentStr;
+  }, [lobby?.settings, isHost]);
 
   // Auto-scroll chat to bottom
   const scrollToBottom = () => {
@@ -104,9 +129,6 @@ export const PrivateLobbyPage = () => {
       socket.off(SERVER_EVENTS.LOBBY_MATCH_STARTING, handleMatchStarting);
     };
   }, [socket, lobbyId, navigate]);
-
-  const isHost = lobby?.creator?.id === user?.id;
-  const isGuest = lobby?.guest?.id === user?.id;
 
   const hostReady = lobby?.ready?.[lobby?.creator?.id];
   const guestReady = lobby?.ready?.[lobby?.guest?.id];
@@ -334,7 +356,30 @@ export const PrivateLobbyPage = () => {
         {/* 2-Column Split: Configurator (Left) & Chat (Right) */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* Match Configuration (7 cols) */}
-          <div className="lg:col-span-7 space-y-5">
+          <div className="lg:col-span-7 space-y-4">
+            {/* Live Settings Updated Notice Banner */}
+            <AnimatePresence>
+              {settingsNotice && (
+                <motion.div
+                  initial={{ opacity: 0, y: -8, scale: 0.98 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -8, scale: 0.98 }}
+                  className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-semibold flex items-center justify-between shadow-[0_0_20px_rgba(245,158,11,0.15)]"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <Sparkles size={16} className="text-amber-400 shrink-0" />
+                    <span>{settingsNotice.message}</span>
+                  </div>
+                  <button 
+                    onClick={() => setSettingsNotice(null)}
+                    className="p-1 rounded-lg hover:bg-white/10 text-neutral-400 hover:text-white transition-colors"
+                  >
+                    <X size={13} />
+                  </button>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
             <div className="p-6 rounded-2xl bg-neutral-950/60 border border-white/10 backdrop-blur shadow-xl space-y-6">
               <div className="flex items-center justify-between border-b border-white/5 pb-4">
                 <div className="flex items-center gap-2">
@@ -342,6 +387,9 @@ export const PrivateLobbyPage = () => {
                   <h3 className="text-sm font-bold uppercase tracking-wider text-white">
                     Match Settings
                   </h3>
+                  <span className="ml-2 px-2 py-0.5 rounded-full text-[10px] font-bold bg-primary/10 text-primary border border-primary/20">
+                    Live UI
+                  </span>
                 </div>
                 {!isHost && (
                   <span className="flex items-center gap-1 text-[11px] text-neutral-400 bg-white/5 px-2.5 py-1 rounded-lg border border-white/5">
@@ -539,7 +587,9 @@ export const PrivateLobbyPage = () => {
 
             {/* Chat Messages */}
             <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-3">
-              {lobby.messages.map((msg) => {
+              {lobby.messages
+                .filter(msg => !(msg.isSystem && (msg.text?.toLowerCase().includes('setting') || msg.text?.toLowerCase().includes('config'))))
+                .map((msg) => {
                 if (msg.isSystem) {
                   return (
                     <div key={msg.id} className="text-center my-2">

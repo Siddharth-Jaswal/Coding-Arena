@@ -29,6 +29,9 @@ const MatchmakingPage = () => {
 
   const handleStartQueueOrChallenge = () => {
     if (selectedMode === 'challenge') {
+      try {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      } catch (e) {}
       setFriendsDrawerOpen(true);
       return;
     }
@@ -81,6 +84,9 @@ const MatchmakingPage = () => {
                         if (!isLocked) {
                           setSelectedMode(mode.id);
                           if (mode.id === 'challenge') {
+                            try {
+                              window.scrollTo({ top: 0, behavior: 'smooth' });
+                            } catch (e) {}
                             setFriendsDrawerOpen(true);
                           }
                         }

@@ -545,6 +545,152 @@ class RoomService {
             io.to(roomId).emit(SERVER_EVENTS.PLAYER_DISCONNECTED, { userId });
         }
     }
+
+    async createCustomRoom(io, player1, player2, customConfig) {
+        const roomId = `room:${uuidv4()}`;
+        const { isRanked = false, selectedProblems = [], durationSeconds = 900, timePerQuestion = 15 } = customConfig || {};
+
+        // Fetch up-to-date user details from DB
+        const playerIds = [player1.id, player2.id].filter(Boolean);
+        let p1Username = player1.username;
+        let p1Rating = player1.rating;
+        let p1Avatar = player1.avatar;
+        let p2Username = player2.username;
+        let p2Rating = player2.rating;
+        let p2Avatar = player2.avatar;
+
+        try {
+            const dbUsers = await prisma.user.findMany({
+                where: { id: { in: playerIds } },
+                select: { id: true, username: true, rating: true, avatar: true }
+            });
+            const p1Db = dbUsers.find(u => u.id === player1.id);
+            if (p1Db) {
+                p1Username = p1Db.username || p1Username;
+                p1Rating = p1Db.rating ?? p1Rating;
+                p1Avatar = p1Db.avatar || p1Avatar;
+            }
+            const p2Db = dbUsers.find(u => u.id === player2.id);
+            if (p2Db) {
+                p2Username = p2Db.username || p2Username;
+                p2Rating = p2Db.rating ?? p2Rating;
+                p2Avatar = p2Db.avatar || p2Avatar;
+            }
+        } catch (dbErr) {
+            console.error('Failed to fetch user profiles for custom room, using lobby metadata:', dbErr);
+        }
+
+        const roomState = {
+            roomId,
+            mode: isRanked ? 'ranked' : 'casual',
+            players: {
+                [player1.id]: { id: player1.id, username: p1Username, rating: p1Rating, avatar: p1Avatar, ready: false, disconnected: false },
+                [player2.id]: { id: player2.id, username: p2Username, rating: p2Rating, avatar: p2Avatar, ready: false, disconnected: false }
+            },
+            setup: null,
+            problems: selectedProblems,
+            totalQuestions: selectedProblems.length,
+            durationSeconds,
+            timePerQuestion,
+            scores: {
+                [player1.id]: 0,
+                [player2.id]: 0
+            },
+            penalties: {
+                [player1.id]: 0,
+                [player2.id]: 0
+            },
+            attempts: {
+                [player1.id]: {},
+                [player2.id]: {}
+            },
+            solved: {
+                [player1.id]: {},
+                [player2.id]: {}
+            },
+            status: 'countdown',
+            startedAt: null,
+            endsAt: null,
+            winner: null
+        };
+
+        // Create match in DB
+        try {
+            await matchService.createMatch(roomId, player1.id, player2.id);
+        } catch (error) {
+            console.error('Failed to create custom match in database:', error);
+        }
+
+        // Save to Redis
+        const multi = redisClient.multi();
+        multi.set(roomId, JSON.stringify(roomState), 'EX', 10800);
+        multi.set(`matchmaking:player:${player1.id}`, roomId, 'EX', 10800);
+        multi.set(`matchmaking:player:${player2.id}`, roomId, 'EX', 10800);
+        await multi.exec();
+
+        // Broadcast MATCH_FOUND and ROOM_CREATED
+        const p1Target = io.to(`user:${player1.id}`);
+        p1Target.emit(SERVER_EVENTS.MATCH_FOUND, {
+            roomId,
+            opponent: { id: player2.id, username: p2Username, rating: p2Rating, avatar: p2Avatar },
+            mode: roomState.mode
+        });
+        p1Target.emit(SERVER_EVENTS.ROOM_CREATED, roomState);
+
+        const p2Target = io.to(`user:${player2.id}`);
+        p2Target.emit(SERVER_EVENTS.MATCH_FOUND, {
+            roomId,
+            opponent: { id: player1.id, username: p1Username, rating: p1Rating, avatar: p1Avatar },
+            mode: roomState.mode
+        });
+        p2Target.emit(SERVER_EVENTS.ROOM_CREATED, roomState);
+
+        // Schedule Countdown and Match Start to coincide with client transition from lobby
+        setTimeout(() => {
+            io.to(roomId).emit(SERVER_EVENTS.COUNTDOWN_STARTED, { startsInSeconds: 3 });
+
+            setTimeout(async () => {
+                const refreshedRoomStr = await redisClient.get(roomId);
+                if (!refreshedRoomStr) return;
+                const refreshedRoom = JSON.parse(refreshedRoomStr);
+
+                if (refreshedRoom.status === 'finished') return;
+
+                const startedAtIso = new Date().toISOString();
+                const endsAtIso = new Date(Date.now() + (durationSeconds * 1000)).toISOString();
+
+                refreshedRoom.status = 'running';
+                refreshedRoom.startedAt = startedAtIso;
+                refreshedRoom.endsAt = endsAtIso;
+
+                await redisClient.set(roomId, JSON.stringify(refreshedRoom), 'EX', 86400);
+
+                io.to(roomId).emit(SERVER_EVENTS.CONTEST_STARTED, {
+                    roomId,
+                    startedAt: startedAtIso,
+                    endsAt: endsAtIso,
+                    durationSeconds,
+                    problems: refreshedRoom.problems
+                });
+
+                // Schedule match expiration timer
+                setTimeout(async () => {
+                    try {
+                        const checkRoomStr = await redisClient.get(roomId);
+                        if (!checkRoomStr) return;
+                        const checkRoom = JSON.parse(checkRoomStr);
+                        if (checkRoom.status !== 'finished') {
+                            await this.finalizeMatch(io, roomId, 'TIME_EXPIRED');
+                        }
+                    } catch (err) {
+                        console.error('Error during custom timeout match finalization:', err);
+                    }
+                }, durationSeconds * 1000);
+            }, 3000);
+        }, 1000);
+
+        return roomId;
+    }
 }
 
 module.exports = new RoomService();

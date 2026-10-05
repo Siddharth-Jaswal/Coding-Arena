@@ -256,17 +256,6 @@ class LobbyService {
         // Whenever settings change, unready the guest so they review the changes
         lobby.ready[lobby.guest.id] = false;
 
-        const systemMsg = {
-            id: uuidv4(),
-            senderId: 'system',
-            senderName: 'System',
-            text: `${socket.user.username} updated match settings.`,
-            timestamp: new Date().toISOString(),
-            isSystem: true
-        };
-        lobby.messages.push(systemMsg);
-        if (lobby.messages.length > 50) lobby.messages.shift();
-
         await redisClient.set(lobbyId, JSON.stringify(lobby), 'EX', 7200);
 
         io.to(lobbyId).emit(SERVER_EVENTS.LOBBY_UPDATED, { lobby });
@@ -426,70 +415,23 @@ class LobbyService {
             return;
         }
 
-        const roomId = `room:${uuidv4()}`;
         const totalDurationSeconds = timePerQuestion * selectedProblems.length * 60;
-
-        const contestRoom = {
-            id: roomId,
-            mode: isRanked ? 'ranked' : 'casual',
-            player1: {
-                id: lobby.creator.id,
-                username: lobby.creator.username,
-                rating: lobby.creator.rating,
-                score: 0,
-                connected: true,
-                ready: false,
-                submissions: []
-            },
-            player2: {
-                id: lobby.guest.id,
-                username: lobby.guest.username,
-                rating: lobby.guest.rating,
-                score: 0,
-                connected: true,
-                ready: false,
-                submissions: []
-            },
-            problems: selectedProblems,
-            totalQuestions: selectedProblems.length,
-            timePerQuestion: timePerQuestion,
-            durationSeconds: totalDurationSeconds,
-            status: 'waiting',
-            startedAt: null,
-            timer: null,
-            timeRemaining: totalDurationSeconds,
-            winner: null
-        };
-
-        // Save contest room in Redis
-        await redisClient.set(roomId, JSON.stringify(contestRoom), 'EX', 86400);
-
-        // Update presence for both players to in_match
-        await Promise.all([
-            presenceService.updateStatus(lobby.creator.id, 'in_match', roomId),
-            presenceService.updateStatus(lobby.guest.id, 'in_match', roomId)
-        ]);
 
         // Clean up lobby in Redis
         await redisClient.del(lobbyId);
 
+        // Create official custom room with full lifecycle (countdown, scoreboards, timer)
+        const roomId = await roomService.createCustomRoom(io, lobby.creator, lobby.guest, {
+            isRanked,
+            selectedProblems,
+            durationSeconds: totalDurationSeconds,
+            timePerQuestion
+        });
+
         // Notify lobby room that match is starting with countdown
         io.to(lobbyId).emit(SERVER_EVENTS.LOBBY_MATCH_STARTING, {
             roomId,
-            countdownSeconds: 3,
-            room: contestRoom
-        });
-
-        // Also emit MATCH_FOUND directly to both player rooms for instant routing
-        io.to(`user:${lobby.creator.id}`).emit(SERVER_EVENTS.MATCH_FOUND, {
-            roomId,
-            opponent: lobby.guest,
-            mode: contestRoom.mode
-        });
-        io.to(`user:${lobby.guest.id}`).emit(SERVER_EVENTS.MATCH_FOUND, {
-            roomId,
-            opponent: lobby.creator,
-            mode: contestRoom.mode
+            countdownSeconds: 3
         });
     }
 }

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Users, 
@@ -65,6 +66,11 @@ export const FriendsDrawer = ({ isOpen, onClose }) => {
 
   useEffect(() => {
     if (isOpen) {
+      try {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      } catch (e) {
+        // ignore if window not available
+      }
       fetchFriends();
       fetchRequests();
     }
@@ -176,10 +182,11 @@ export const FriendsDrawer = ({ isOpen, onClose }) => {
         />
       )}
 
-      <AnimatePresence>
-        {isOpen && (
-          <div className="fixed inset-0 z-40 overflow-hidden">
-            {/* Backdrop */}
+      {typeof document !== 'undefined' && createPortal(
+        <AnimatePresence>
+          {isOpen && (
+            <div className="fixed inset-0 z-[90] overflow-hidden">
+              {/* Backdrop */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -591,7 +598,9 @@ export const FriendsDrawer = ({ isOpen, onClose }) => {
             </motion.div>
           </div>
         )}
-      </AnimatePresence>
-    </>
-  );
+      </AnimatePresence>,
+      document.body
+    )}
+  </>
+);
 };

@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useParams } from 'react-router-dom';
 import { Wifi, WifiOff, Flag, AlertTriangle } from 'lucide-react';
 import { ContestTimer } from '@/components/common/ContestTimer';
 import { useSocket } from '@/contexts/SocketContext';
 import { useMatchContext } from '../contexts/MatchContext';
 
 export const ContestHeader = ({ room, status, endsAt }) => {
+  const { roomId: urlRoomId } = useParams();
   const { isConnected } = useSocket();
   const { bailOut } = useMatchContext();
   const [showBailModal, setShowBailModal] = useState(false);
@@ -25,7 +27,13 @@ export const ContestHeader = ({ room, status, endsAt }) => {
     }
   };
 
-  const modeTitle = room?.mode === 'toss' ? 'Toss Battle' : 'Ranked Battle';
+  const modeTitle = room?.mode === 'toss' 
+    ? 'Toss Battle' 
+    : room?.mode === 'casual' 
+      ? '1v1 Friendly Showdown' 
+      : 'Ranked Battle';
+
+  const displayRoomId = (room?.roomId || urlRoomId || '').replace(/^room:/, '').slice(0, 8);
 
   return (
     <header className="h-14 border-b border-border/50 bg-[#050505] flex items-center justify-between px-4 sm:px-6 relative z-20">
@@ -35,9 +43,11 @@ export const ContestHeader = ({ room, status, endsAt }) => {
         </h1>
         <div className="hidden sm:flex items-center gap-2">
           {getStatusBadge()}
-          <span className="text-xs text-muted-foreground font-mono bg-white/5 px-2 py-0.5 rounded">
-            {room?.roomId || 'Loading...'}
-          </span>
+          {displayRoomId && (
+            <span className="text-xs text-muted-foreground font-mono bg-white/5 px-2 py-0.5 rounded">
+              #{displayRoomId}
+            </span>
+          )}
         </div>
       </div>
 
