@@ -37,6 +37,18 @@ class SubmissionController {
         }
     }
 
+    async getUserProblemSubmissions(req, res) {
+        try {
+            const { problemId } = req.params;
+            const userId = req.user.id;
+            const submissions = await submissionService.getUserProblemSubmissions(userId, problemId);
+            return res.json(submissions);
+        } catch (error) {
+            console.error('Error getting problem submissions:', error);
+            return res.status(500).json({ error: 'Internal server error' });
+        }
+    }
+
     async getUserSubmissions(req, res) {
         try {
             const { userId } = req.params;

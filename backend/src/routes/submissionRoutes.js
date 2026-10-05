@@ -6,6 +6,7 @@ const { requireAuth } = require('../middleware/auth.middleware');
 const router = express.Router();
 
 router.post('/', requireAuth, submissionController.createSubmission);
+router.get('/problem/:problemId', requireAuth, submissionController.getUserProblemSubmissions);
 router.get('/:id', submissionController.getSubmission);
 
 module.exports = router;
