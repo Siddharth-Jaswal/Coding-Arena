@@ -45,6 +45,9 @@ const initializeSocket = (httpServer) => {
     io.on('connection', async (socket) => {
         console.log(`Socket connected: ${socket.id} (User: ${socket.user.username})`);
         
+        // Join personal user room so events can reliably reach this user regardless of socket reconnects
+        socket.join(`user:${socket.user.id}`);
+
         // Check if user is already in a match and silently rejoin them
         try {
             await roomService.handleReconnect(io, socket, socket.user.id);
@@ -55,6 +58,16 @@ const initializeSocket = (httpServer) => {
         // Register all socket handlers
         registerHandlers(io, socket);
     });
+
+    // Start background matchmaking heartbeat (evaluates waiting queue every 2s)
+    const matchmakingService = require('../modules/matchmaking/matchmaking.service');
+    setInterval(() => {
+        try {
+            matchmakingService.attemptMatch(io);
+        } catch (err) {
+            console.error('[Matchmaking Heartbeat Error]:', err);
+        }
+    }, 2000);
 
     return io;
 };

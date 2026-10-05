@@ -5,36 +5,36 @@ import { CLIENT_EVENTS, SERVER_EVENTS } from '@/socket/events';
 
 export const useMatchmakingSocket = () => {
   const { socket, isConnected } = useSocket();
-  const store = useMatchmakingStore();
 
   useEffect(() => {
     if (!socket || !isConnected) return;
 
     const handleQueueJoined = (payload) => {
-      if (payload?.attemptId !== store.attemptId) return;
+      const { attemptId, setQueued } = useMatchmakingStore.getState();
+      if (payload?.attemptId && attemptId && payload.attemptId !== attemptId) return;
       if (payload?.success) {
-        store.setQueued();
+        setQueued();
       }
     };
 
     const handleQueueLeft = () => {
-      store.setCancelled();
+      useMatchmakingStore.getState().setCancelled();
     };
 
     const handleMatchFound = (payload) => {
-      if (payload?.attemptId && payload.attemptId !== store.attemptId) return;
-      store.setMatchFound(payload);
+      const { attemptId, setMatchFound } = useMatchmakingStore.getState();
+      if (payload?.attemptId && attemptId && payload.attemptId !== attemptId) return;
+      setMatchFound(payload);
     };
 
     const handleError = (payload) => {
-      store.setError(payload?.message || 'An unknown error occurred');
+      useMatchmakingStore.getState().setError(payload?.message || 'An unknown error occurred');
     };
 
     const handleRoomCreated = (payload) => {
-      // The backend should pass attemptId in MATCH_FOUND and ROOM_CREATED if we want to be very strict.
-      // Since ROOM_CREATED comes right after MATCH_FOUND (or with it), we can also verify attemptId.
-      if (payload?.attemptId && payload.attemptId !== store.attemptId) return;
-      store.setRoomData(payload);
+      const { attemptId, setRoomData } = useMatchmakingStore.getState();
+      if (payload?.attemptId && attemptId && payload.attemptId !== attemptId) return;
+      setRoomData(payload);
     };
 
     // Attach listeners
@@ -52,22 +52,23 @@ export const useMatchmakingSocket = () => {
       socket.off(SERVER_EVENTS.ROOM_CREATED, handleRoomCreated);
       socket.off(SERVER_EVENTS.ERROR, handleError);
     };
-  }, [socket, isConnected, store]);
+  }, [socket, isConnected]);
 
   // Expose callbacks for the UI to trigger
   const findMatch = useCallback((mode = 'ranked') => {
     if (!socket || !isConnected) {
-      store.setError('Not connected to server');
+      useMatchmakingStore.getState().setError('Not connected to server');
       return;
     }
     const attemptId = crypto.randomUUID();
-    store.setJoining(attemptId, mode);
+    useMatchmakingStore.getState().setJoining(attemptId, mode);
     socket.emit(CLIENT_EVENTS.JOIN_QUEUE, { attemptId, mode });
-  }, [socket, isConnected, store]);
+  }, [socket, isConnected]);
 
   const cancelSearch = useCallback(() => {
     if (!socket || !isConnected) return;
     socket.emit(CLIENT_EVENTS.LEAVE_QUEUE);
+    useMatchmakingStore.getState().setCancelled();
   }, [socket, isConnected]);
 
   return {

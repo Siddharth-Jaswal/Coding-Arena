@@ -14,12 +14,15 @@ export const useMatchmakingStore = create((set, get) => ({
   contestMetadata: null,
   attemptId: null,
   error: null,
+  cancelTimer: null,
 
   setMode: (mode) => set({ mode }),
 
   // UI Only Actions (The actual socket emission is handled by the hook)
   setJoining: (attemptId, mode = 'ranked') => {
-    set({ status: MATCHMAKING_STATES.JOINING, attemptId, mode, error: null });
+    const { cancelTimer } = get();
+    if (cancelTimer) clearTimeout(cancelTimer);
+    set({ status: MATCHMAKING_STATES.JOINING, attemptId, mode, error: null, cancelTimer: null });
   },
 
   setQueued: () => {
@@ -29,11 +32,14 @@ export const useMatchmakingStore = create((set, get) => ({
 
   setMatchFound: (payload) => {
     get().stopTimer();
+    const { cancelTimer } = get();
+    if (cancelTimer) clearTimeout(cancelTimer);
     set({ 
       status: MATCHMAKING_STATES.MATCH_FOUND,
       roomId: payload.roomId,
       opponent: payload.opponent,
-      error: null
+      error: null,
+      cancelTimer: null
     });
   },
 
@@ -43,17 +49,34 @@ export const useMatchmakingStore = create((set, get) => ({
 
   setCancelled: () => {
     get().stopTimer();
+    const { cancelTimer } = get();
+    if (cancelTimer) clearTimeout(cancelTimer);
+
     set({ status: MATCHMAKING_STATES.CANCELLED });
     
-    // Auto reset to idle
-    setTimeout(() => {
-      set({ status: MATCHMAKING_STATES.IDLE, elapsedTime: 0, roomId: null, opponent: null, contestMetadata: null, attemptId: null });
+    // Auto reset to idle only if state is still CANCELLED
+    const timeout = setTimeout(() => {
+      if (get().status === MATCHMAKING_STATES.CANCELLED) {
+        set({ 
+          status: MATCHMAKING_STATES.IDLE, 
+          elapsedTime: 0, 
+          roomId: null, 
+          opponent: null, 
+          contestMetadata: null, 
+          attemptId: null,
+          cancelTimer: null 
+        });
+      }
     }, 1500);
+
+    set({ cancelTimer: timeout });
   },
 
   setError: (errorMessage) => {
     get().stopTimer();
-    set({ status: MATCHMAKING_STATES.ERROR, error: errorMessage });
+    const { cancelTimer } = get();
+    if (cancelTimer) clearTimeout(cancelTimer);
+    set({ status: MATCHMAKING_STATES.ERROR, error: errorMessage, cancelTimer: null });
   },
 
   // Internal Timer for UI elapsed time
@@ -74,14 +97,17 @@ export const useMatchmakingStore = create((set, get) => ({
   
   reset: () => {
     get().stopTimer();
+    const { cancelTimer } = get();
+    if (cancelTimer) clearTimeout(cancelTimer);
     set({ 
       status: MATCHMAKING_STATES.IDLE, 
       elapsedTime: 0, 
       roomId: null, 
       opponent: null, 
-      contestMetadata: null,
+      contestMetadata: null, 
       attemptId: null,
-      error: null
+      error: null,
+      cancelTimer: null
     });
   }
 }));

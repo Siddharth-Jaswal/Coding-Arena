@@ -133,33 +133,33 @@ class RoomService {
         multi.set(`matchmaking:player:${player2.id}`, roomId, 'EX', 10800);
         await multi.exec();
 
-        // Broadcast MATCH_FOUND and ROOM_CREATED to specific sockets
+        // Broadcast MATCH_FOUND and ROOM_CREATED to specific sockets and user rooms
         const roomPayload = roomState;
 
-        if (player1.socketId) {
-            io.to(player1.socketId).emit(SERVER_EVENTS.MATCH_FOUND, {
-                roomId,
-                attemptId: player1.attemptId,
-                opponent: { id: player2.id, username: player2.username || 'Player 2', rating: player2.rating },
-                mode: roomState.mode
-            });
-            io.to(player1.socketId).emit(SERVER_EVENTS.ROOM_CREATED, { ...roomPayload, attemptId: player1.attemptId });
-            if (isTossMode) {
-                io.to(player1.socketId).emit(SERVER_EVENTS.MATCH_SETUP_STARTED, { roomId, setup: roomPayload.setup });
-            }
+        const p1Target = io.to(`user:${player1.id}`);
+        if (player1.socketId) p1Target.to(player1.socketId);
+        p1Target.emit(SERVER_EVENTS.MATCH_FOUND, {
+            roomId,
+            attemptId: player1.attemptId,
+            opponent: { id: player2.id, username: player2.username || 'Player 2', rating: player2.rating },
+            mode: roomState.mode
+        });
+        p1Target.emit(SERVER_EVENTS.ROOM_CREATED, { ...roomPayload, attemptId: player1.attemptId });
+        if (isTossMode) {
+            p1Target.emit(SERVER_EVENTS.MATCH_SETUP_STARTED, { roomId, setup: roomPayload.setup });
         }
 
-        if (player2.socketId) {
-            io.to(player2.socketId).emit(SERVER_EVENTS.MATCH_FOUND, {
-                roomId,
-                attemptId: player2.attemptId,
-                opponent: { id: player1.id, username: player1.username || 'Player 1', rating: player1.rating },
-                mode: roomState.mode
-            });
-            io.to(player2.socketId).emit(SERVER_EVENTS.ROOM_CREATED, { ...roomPayload, attemptId: player2.attemptId });
-            if (isTossMode) {
-                io.to(player2.socketId).emit(SERVER_EVENTS.MATCH_SETUP_STARTED, { roomId, setup: roomPayload.setup });
-            }
+        const p2Target = io.to(`user:${player2.id}`);
+        if (player2.socketId) p2Target.to(player2.socketId);
+        p2Target.emit(SERVER_EVENTS.MATCH_FOUND, {
+            roomId,
+            attemptId: player2.attemptId,
+            opponent: { id: player1.id, username: player1.username || 'Player 1', rating: player1.rating },
+            mode: roomState.mode
+        });
+        p2Target.emit(SERVER_EVENTS.ROOM_CREATED, { ...roomPayload, attemptId: player2.attemptId });
+        if (isTossMode) {
+            p2Target.emit(SERVER_EVENTS.MATCH_SETUP_STARTED, { roomId, setup: roomPayload.setup });
         }
 
         // If Ranked mode, immediately kick off countdown to match start

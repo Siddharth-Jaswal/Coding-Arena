@@ -68,7 +68,7 @@ const registerHandlers = (io, socket) => {
 
     socket.on('disconnect', async () => {
         try {
-            await matchmakingService.leaveQueue(socket.user.id);
+            await matchmakingService.leaveQueue(socket.user.id, socket.id);
             await roomService.handleDisconnect(io, socket.user.id);
         } catch (error) {
             console.error('Error handling disconnect:', error);
