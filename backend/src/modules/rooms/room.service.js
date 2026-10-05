@@ -484,9 +484,26 @@ class RoomService {
 
         const bailedUserId = socket.user.id;
         const playerIds = Object.keys(room.players || {});
-        const opponentId = playerIds.find(id => id !== bailedUserId);
-        if (!opponentId) return;
+        const opponentId = playerIds.find(id => String(id) !== String(bailedUserId));
 
+        // Always clean up the bailed player's active room mapping in Redis
+        await redisClient.del(`matchmaking:player:${bailedUserId}`);
+
+        // If the match hasn't started yet (waiting for opponent) or no opponent exists
+        if (room.status === 'waiting' || !opponentId) {
+            room.status = 'finished';
+            room.finishReason = 'CANCELLED';
+            await redisClient.set(roomId, JSON.stringify(room), 'EX', 3600);
+            io.to(roomId).emit(SERVER_EVENTS.MATCH_FINISHED, {
+                roomId,
+                winnerId: null,
+                reason: 'CANCELLED',
+                result: 'CANCELLED'
+            });
+            return;
+        }
+
+        // Active match: countdown, setup, or running — forfeit to opponent
         room.status = 'finished';
         room.winner = opponentId;
         room.finishReason = 'FORFEIT';

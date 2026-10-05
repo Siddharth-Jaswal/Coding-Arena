@@ -17,7 +17,7 @@ import { MatchResultModal } from '../components/MatchResultModal';
 import { PreMatchSetup } from '../components/PreMatchSetup';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useMatchmakingStore } from '@/features/matchmaking/store/useMatchmakingStore';
-import { BookOpen, Code2, Terminal, Swords, CheckCircle2, AlertCircle } from 'lucide-react';
+import { BookOpen, Code2, Terminal, Swords, CheckCircle2, AlertCircle, Flag, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const ContestRoom = () => {
@@ -38,7 +38,8 @@ const ContestRoom = () => {
     solvedProblemIds,
     attemptedProblemIds,
     winnerId,
-    matchResult
+    matchResult,
+    bailOut
   } = useMatchContext();
 
   // Navigation Guard
@@ -91,8 +92,19 @@ const ContestRoom = () => {
 
   if (!room) {
     return (
-      <div className="flex items-center justify-center h-screen bg-[#050505] text-white">
-        Loading contest data...
+      <div className="flex flex-col items-center justify-center h-screen bg-[#050505] text-white gap-4 p-4 text-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <span className="text-sm text-neutral-400">Loading contest data...</span>
+        <button
+          onClick={() => {
+            bailOut();
+            navigate('/matchmaking');
+          }}
+          className="mt-4 px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-neutral-300 text-xs font-semibold border border-white/10 transition-colors flex items-center gap-2"
+        >
+          <Flag size={14} />
+          <span>Exit to Matchmaking</span>
+        </button>
       </div>
     );
   }

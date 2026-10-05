@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { Wifi, WifiOff, Flag, AlertTriangle } from 'lucide-react';
 import { ContestTimer } from '@/components/common/ContestTimer';
 import { useSocket } from '@/contexts/SocketContext';
@@ -8,6 +9,7 @@ import { useMatchContext } from '../contexts/MatchContext';
 
 export const ContestHeader = ({ room, status, endsAt }) => {
   const { roomId: urlRoomId } = useParams();
+  const navigate = useNavigate();
   const { isConnected } = useSocket();
   const { bailOut } = useMatchContext();
   const [showBailModal, setShowBailModal] = useState(false);
@@ -58,13 +60,14 @@ export const ContestHeader = ({ room, status, endsAt }) => {
           </motion.div>
         )}
 
-        {status === 'running' && (
+        {status !== 'finished' && (
           <button
             onClick={() => setShowBailModal(true)}
-            className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 text-xs font-bold transition-all hover:scale-105 active:scale-95 shadow-sm"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-500/15 hover:bg-red-500/25 active:bg-red-500/35 text-red-400 border border-red-500/40 text-xs font-bold transition-all hover:scale-105 active:scale-95 shadow-sm"
+            title={status === 'waiting' ? 'Leave waiting room without penalty' : 'Bail out of match (forfeit)'}
           >
             <Flag size={13} />
-            <span>Bail Out</span>
+            <span>{status === 'waiting' ? 'Leave Room' : 'Bail Out'}</span>
           </button>
         )}
         
@@ -83,44 +86,52 @@ export const ContestHeader = ({ room, status, endsAt }) => {
         </div>
       </div>
 
-      {/* Bail Out Confirmation Modal */}
-      <AnimatePresence>
-        {showBailModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-[#12121c] border border-red-500/30 rounded-2xl p-6 max-w-md w-full shadow-2xl text-center"
-            >
-              <div className="w-12 h-12 rounded-full bg-red-500/10 border border-red-500/30 flex items-center justify-center mx-auto mb-4 text-red-400">
-                <AlertTriangle className="w-6 h-6" />
-              </div>
-              <h3 className="text-xl font-bold text-white mb-2">Bail Out of Match?</h3>
-              <p className="text-sm text-neutral-400 mb-6 leading-relaxed">
-                Conceding will immediately forfeit the match. Your opponent will be awarded the victory and your rating will decrease.
-              </p>
-              <div className="flex gap-3 justify-center">
-                <button
-                  onClick={() => setShowBailModal(false)}
-                  className="px-5 py-2.5 rounded-xl border border-white/10 hover:bg-white/5 text-sm font-semibold text-neutral-300 transition-colors"
-                >
-                  Stay in Match
-                </button>
-                <button
-                  onClick={() => {
-                    setShowBailModal(false);
-                    bailOut();
-                  }}
-                  className="px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-sm font-bold shadow-lg shadow-red-600/30 transition-all"
-                >
-                  Yes, Bail Out
-                </button>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+      {/* Bail Out Confirmation Modal (Portalled to document.body) */}
+      {typeof document !== 'undefined' && createPortal(
+        <AnimatePresence>
+          {showBailModal && (
+            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+              <motion.div
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.9, opacity: 0 }}
+                className="bg-[#12121c] border border-red-500/30 rounded-2xl p-6 max-w-md w-full shadow-2xl text-center"
+              >
+                <div className="w-12 h-12 rounded-full bg-red-500/10 border border-red-500/30 flex items-center justify-center mx-auto mb-4 text-red-400">
+                  <AlertTriangle className="w-6 h-6" />
+                </div>
+                <h3 className="text-xl font-bold text-white mb-2">
+                  {status === 'waiting' ? 'Leave Waiting Room?' : 'Bail Out of Match?'}
+                </h3>
+                <p className="text-sm text-neutral-400 mb-6 leading-relaxed">
+                  {status === 'waiting'
+                    ? 'The match has not started yet. Leaving now will safely return you to matchmaking without any rating penalties.'
+                    : 'Bailing out will immediately forfeit the match. Your opponent will be awarded the victory and your rating will decrease.'}
+                </p>
+                <div className="flex gap-3 justify-center">
+                  <button
+                    onClick={() => setShowBailModal(false)}
+                    className="px-5 py-2.5 rounded-xl border border-white/10 hover:bg-white/5 text-sm font-semibold text-neutral-300 transition-colors"
+                  >
+                    Stay in Arena
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowBailModal(false);
+                      bailOut();
+                      navigate('/matchmaking');
+                    }}
+                    className="px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-sm font-bold shadow-lg shadow-red-600/30 transition-all hover:scale-105 active:scale-95"
+                  >
+                    {status === 'waiting' ? 'Yes, Leave Room' : 'Yes, Bail Out (Forfeit)'}
+                  </button>
+                </div>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
     </header>
   );
 };
