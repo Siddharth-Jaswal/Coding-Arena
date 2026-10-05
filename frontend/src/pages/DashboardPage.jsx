@@ -7,20 +7,27 @@ import { Button } from '@/components/ui/Button';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { userApi } from '@/api/users';
-import { Trophy, Swords, Shield, Target, Activity } from 'lucide-react';
+import { Trophy, Swords, Shield, Target, Activity, Award, ArrowRight } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { fadeSlideUp, staggerChildren } from '@/lib/motion';
+import { TierBadge, getTier } from '@/components/common/TierBadge';
 
-const StatCard = ({ title, value, icon: Icon, color = "text-primary" }) => (
+const StatCard = ({ title, value, subtitle, icon: Icon, color = "text-primary", badge }) => (
   <Card className="border-border/50 bg-card/40 backdrop-blur-sm">
-    <CardContent className="p-4 sm:p-6 flex items-center gap-3 sm:gap-4">
-      <div className={`p-2.5 sm:p-3 rounded-xl bg-background/50 ${color} shrink-0`}>
-        <Icon className="h-5 w-5 sm:h-6 sm:w-6" />
+    <CardContent className="p-4 sm:p-6 flex items-center justify-between gap-3 sm:gap-4">
+      <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+        <div className={`p-2.5 sm:p-3 rounded-xl bg-background/50 ${color} shrink-0`}>
+          <Icon className="h-5 w-5 sm:h-6 sm:w-6" />
+        </div>
+        <div className="min-w-0">
+          <p className="text-xs sm:text-sm font-medium text-muted-foreground truncate">{title}</p>
+          <div className="flex items-baseline gap-2">
+            <h4 className="text-xl sm:text-2xl font-bold">{value}</h4>
+            {subtitle && <span className="text-xs font-semibold text-muted-foreground hidden sm:inline">{subtitle}</span>}
+          </div>
+        </div>
       </div>
-      <div className="min-w-0">
-        <p className="text-xs sm:text-sm font-medium text-muted-foreground truncate">{title}</p>
-        <h4 className="text-xl sm:text-2xl font-bold">{value}</h4>
-      </div>
+      {badge && <div className="shrink-0">{badge}</div>}
     </CardContent>
   </Card>
 );
@@ -34,6 +41,8 @@ export default function DashboardPage() {
   });
 
   const currentUser = profileResp?.data || user;
+  const currentRating = currentUser?.rating || 1500;
+  const tierInfo = getTier(currentRating);
 
   const { data: submissionsResp } = useQuery({
     queryKey: ['user', 'submissions'],
@@ -57,20 +66,33 @@ export default function DashboardPage() {
         {/* Welcome Section */}
         <motion.div {...fadeSlideUp} className="flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div>
-            <h1 className="text-2xl sm:text-4xl font-bold tracking-tight">Good Evening, {currentUser?.displayName || currentUser?.username}!</h1>
+            <div className="flex items-center gap-3 flex-wrap">
+              <h1 className="text-2xl sm:text-4xl font-bold tracking-tight">Good Evening, {currentUser?.displayName || currentUser?.username}!</h1>
+              <TierBadge rating={currentRating} size="md" showTitle={true} animated={true} />
+            </div>
             <p className="text-muted-foreground text-sm sm:text-base mt-1.5 sm:mt-2">Welcome back to the Arena. Ready for your next challenge?</p>
           </div>
           <div className="flex gap-3">
-            <Button asChild size="lg" className="shadow-lg shadow-primary/20">
-              <Link to="/problems">Continue Solving</Link>
+            <Button asChild size="lg" className="shadow-lg shadow-primary/20 bg-gradient-to-r from-primary to-indigo-600 hover:from-primary/90 hover:to-indigo-500 text-white font-bold">
+              <Link to="/matchmaking">
+                <Swords className="w-4 h-4 mr-2" />
+                Find 1v1 Battle
+              </Link>
             </Button>
           </div>
         </motion.div>
 
         {/* Stats Grid */}
-        <motion.div variants={staggerChildren} initial="hidden" animate="show" className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <motion.div variants={staggerChildren} initial="hidden" animate="show" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <motion.div variants={fadeSlideUp}>
-            <StatCard title="Current Rating" value={currentUser?.rating || 1500} icon={Trophy} color="text-yellow-500" />
+            <StatCard 
+              title="Current Rating" 
+              value={currentRating} 
+              subtitle="Elo"
+              icon={Trophy} 
+              color="text-yellow-500"
+              badge={<TierBadge rating={currentRating} size="sm" showLabel={false} />}
+            />
           </motion.div>
           <motion.div variants={fadeSlideUp}>
             <StatCard title="Problems Solved" value={solvedCount} icon={Target} color="text-emerald-500" />
@@ -98,10 +120,10 @@ export default function DashboardPage() {
                   recentSubmissions.map((sub) => (
                     <div key={sub.id} className="p-4 flex items-center justify-between hover:bg-white/5 transition-colors">
                       <div>
-                        <Link to={`/problems/${sub.problem_id}`} className="font-medium hover:text-primary transition-colors">
-                          {sub.problems?.title || `Problem #${sub.problem_id}`}
-                        </Link>
-                        <div className="text-xs text-muted-foreground mt-1">
+                        <div className="font-semibold text-sm hover:underline cursor-pointer">
+                          {sub.problem?.title || `Problem #${sub.problem_id}`}
+                        </div>
+                        <div className="text-xs text-muted-foreground mt-0.5">
                           {new Date(sub.created_at).toLocaleString()} • {sub.language}
                         </div>
                       </div>
@@ -119,21 +141,60 @@ export default function DashboardPage() {
             </Card>
           </motion.div>
 
-          {/* Placeholders for Future Features */}
+          {/* Rank Tier Progression Card */}
           <motion.div {...fadeSlideUp} className="space-y-4">
-            <h3 className="text-xl font-semibold text-muted-foreground">Coming Soon</h3>
+            <h3 className="text-xl font-semibold flex items-center gap-2">
+              <Award className="h-5 w-5 text-primary" />
+              Rank Standing
+            </h3>
             
-            <Card className="border-border/50 bg-card/20 backdrop-blur-sm opacity-60">
-              <CardHeader>
-                <CardTitle className="text-lg">Matchmaking</CardTitle>
-                <CardDescription>Challenge players of similar skill rating in real-time battles.</CardDescription>
+            <Card className="border-border/50 bg-card/40 backdrop-blur-sm overflow-hidden relative">
+              <div className={`absolute top-0 left-0 right-0 h-1 bg-gradient-to-r ${tierInfo.gradient}`} />
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Current Tier</span>
+                  <TierBadge rating={currentRating} size="sm" showLabel={true} />
+                </div>
+                <CardTitle className="text-xl font-bold mt-1">
+                  {tierInfo.name} <span className="text-sm font-normal text-muted-foreground">· {tierInfo.title}</span>
+                </CardTitle>
+                <CardDescription className="text-xs">
+                  {tierInfo.nextTier ? (
+                    <span>
+                      <strong className="text-foreground">{tierInfo.pointsToNext} pts</strong> to {tierInfo.nextTier.name}
+                    </span>
+                  ) : (
+                    <span>Max tier achieved!</span>
+                  )}
+                </CardDescription>
               </CardHeader>
+              <CardContent className="space-y-4 pt-0">
+                <div className="space-y-1.5">
+                  <div className="flex justify-between text-[11px] font-mono text-muted-foreground">
+                    <span>{currentRating} pts</span>
+                    <span>{tierInfo.nextTier ? `${tierInfo.max + 1} pts` : 'Top'}</span>
+                  </div>
+                  <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden border border-white/10">
+                    <div 
+                      className={`h-full rounded-full bg-gradient-to-r ${tierInfo.gradient}`}
+                      style={{ width: `${tierInfo.progressPercent}%` }}
+                    />
+                  </div>
+                </div>
+
+                <Button variant="outline" size="sm" asChild className="w-full text-xs font-semibold border-white/10 hover:bg-white/5">
+                  <Link to="/profile" className="flex items-center justify-center gap-1.5">
+                    <span>View Rank Breakdown</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </Link>
+                </Button>
+              </CardContent>
             </Card>
 
             <Card className="border-border/50 bg-card/20 backdrop-blur-sm opacity-60">
-              <CardHeader>
-                <CardTitle className="text-lg">Global Leaderboard</CardTitle>
-                <CardDescription>See how you rank against the best competitive programmers.</CardDescription>
+              <CardHeader className="p-4">
+                <CardTitle className="text-base">Global Leaderboard</CardTitle>
+                <CardDescription className="text-xs">Compete in PvP matches to climb global rankings.</CardDescription>
               </CardHeader>
             </Card>
           </motion.div>

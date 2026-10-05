@@ -6,6 +6,7 @@ import { Trophy, Swords } from 'lucide-react';
 import { useMatchmakingStore } from '../store/useMatchmakingStore';
 import { MATCHMAKING_STATES } from '../constants/matchmaking.constants';
 import { useAuth } from '@/contexts/AuthContext';
+import { TierBadge } from '@/components/common/TierBadge';
 
 export const MatchFoundOverlay = () => {
   const { status, roomId, opponent } = useMatchmakingStore();
@@ -87,10 +88,11 @@ export const MatchFoundOverlay = () => {
                 </div>
                 <div className="text-center">
                   <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-white">{user?.username || 'You'}</h3>
-                  <div className="flex items-center gap-1.5 justify-center text-yellow-400 mt-1">
+                  <div className="flex items-center gap-1.5 justify-center text-yellow-400 mt-1 mb-2">
                     <Trophy className="w-4 h-4" />
                     <span className="font-semibold text-sm sm:text-base">{user?.rating ?? 1500}</span>
                   </div>
+                  <TierBadge rating={user?.rating ?? 1500} size="sm" showTitle={true} animated={true} />
                 </div>
               </motion.div>
 
@@ -117,12 +119,13 @@ export const MatchFoundOverlay = () => {
                 <div className="w-20 h-20 sm:w-28 sm:h-28 md:w-32 md:h-32 rounded-full border-4 border-rose-500/50 bg-card/60 flex items-center justify-center shadow-[0_0_35px_rgba(239,68,68,0.35)]">
                   <span className="text-2xl sm:text-3xl md:text-4xl font-black uppercase text-white">{opponent?.username?.[0] || 'O'}</span>
                 </div>
-                <div className="text-center">
+                <div className="text-center flex flex-col items-center">
                   <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-white">{opponent?.username || 'Opponent'}</h3>
-                  <div className="flex items-center gap-1.5 justify-center text-yellow-400 mt-1">
+                  <div className="flex items-center gap-1.5 justify-center text-yellow-400 mt-1 mb-2">
                     <Trophy className="w-4 h-4" />
                     <span className="font-semibold text-sm sm:text-base">{opponent?.rating ?? 1500}</span>
                   </div>
+                  <TierBadge rating={opponent?.rating ?? 1500} size="sm" showTitle={true} animated={true} />
                 </div>
               </motion.div>
             </div>

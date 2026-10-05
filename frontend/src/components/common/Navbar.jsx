@@ -6,6 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useSocket } from "@/contexts/SocketContext";
 import { SOCKET_STATUS } from "@/socket/events";
 import { Swords, Wifi, WifiOff, Loader2, Menu, X, LayoutDashboard, Code2, User, LogOut, LogIn, UserPlus } from "lucide-react";
+import { TierBadge } from "@/components/common/TierBadge";
 
 const ConnectionIndicator = () => {
   const { status } = useSocket();
@@ -133,6 +134,19 @@ export const Navbar = ({ variant = "landing" }) => {
                 <Swords className="w-4 h-4 mr-2" />
                 Find Match (Beta)
               </Button>
+
+              {/* User Rank Tier Badge Link */}
+              <Link 
+                to="/profile" 
+                className="hidden sm:inline-flex items-center gap-1.5 p-1 pr-2.5 rounded-full bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 transition-all hover:scale-105"
+                title={`Rank: ${user?.rating || 1500} Elo - View Profile`}
+              >
+                <TierBadge rating={user?.rating || 1500} size="sm" showLabel={false} />
+                <span className="text-xs font-mono font-bold text-foreground">
+                  {user?.rating || 1500}
+                </span>
+              </Link>
+
               {variant === 'landing' ? (
                 <>
                   <Button variant="ghost" size="sm" className="hidden sm:inline-flex" asChild>
@@ -178,9 +192,12 @@ export const Navbar = ({ variant = "landing" }) => {
                     <span className="text-xs text-muted-foreground block">Signed in as</span>
                     <span className="text-sm font-bold text-foreground">{user.username}</span>
                   </div>
-                  <span className="text-xs font-mono font-bold bg-primary/10 text-primary px-2.5 py-1 rounded-full border border-primary/20">
-                    {user.rating || 1500} pts
-                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <TierBadge rating={user.rating || 1500} size="sm" showLabel={true} />
+                    <span className="text-xs font-mono font-bold text-foreground/80">
+                      {user.rating || 1500}
+                    </span>
+                  </div>
                 </div>
               )}
 

@@ -19,6 +19,7 @@ import {
 import { useMatchContext } from '../contexts/MatchContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { MatchResultModal } from './MatchResultModal';
+import { TierBadge } from '@/components/common/TierBadge';
 
 // Animated Coin Component
 const CoinDisplay = ({ outcome, isWinner, label }) => {
@@ -165,10 +166,11 @@ export const PreMatchSetup = () => {
                 <span className="truncate">{myName}</span>
                 <span className="text-[9px] sm:text-[10px] px-1 sm:px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 font-semibold shrink-0">You</span>
               </div>
-              <div className="text-[10px] sm:text-[11px] text-neutral-400 font-mono flex items-center gap-2 flex-wrap">
+              <div className="text-[10px] sm:text-[11px] text-neutral-400 font-mono flex items-center gap-1.5 flex-wrap">
                 <span>Assigned: <strong className="text-amber-300">HEADS</strong></span>
                 <span className="text-neutral-600">•</span>
-                <span className="text-amber-400 font-semibold">★ {myRating}</span>
+                <TierBadge rating={myRating} size="sm" showLabel={false} />
+                <span className="text-amber-400 font-semibold">{myRating}</span>
               </div>
             </div>
           </div>
@@ -183,8 +185,9 @@ export const PreMatchSetup = () => {
           <div className="flex items-center gap-2 sm:gap-3 text-right min-w-0">
             <div className="min-w-0">
               <div className="text-xs sm:text-sm font-bold text-white truncate">{opponentName}</div>
-              <div className="text-[10px] sm:text-[11px] text-neutral-400 font-mono flex items-center justify-end gap-2 flex-wrap">
-                <span className="text-amber-400 font-semibold">★ {opponentRating}</span>
+              <div className="text-[10px] sm:text-[11px] text-neutral-400 font-mono flex items-center justify-end gap-1.5 flex-wrap">
+                <span className="text-amber-400 font-semibold">{opponentRating}</span>
+                <TierBadge rating={opponentRating} size="sm" showLabel={false} />
                 <span className="text-neutral-600">•</span>
                 <span>Assigned: <strong className="text-neutral-300">TAILS</strong></span>
               </div>
