@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "../ui/Button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSocket } from "@/contexts/SocketContext";
-import { SOCKET_STATUS } from "@/socket/events";
+import { SOCKET_STATUS, SERVER_EVENTS } from "@/socket/events";
 import { Swords, Wifi, WifiOff, Loader2, Menu, X, LayoutDashboard, Code2, User, LogOut, LogIn, UserPlus, Users } from "lucide-react";
 import { TierBadge } from "@/components/common/TierBadge";
 import { FriendsDrawer } from "@/features/friends/components/FriendsDrawer";
@@ -40,6 +40,7 @@ const ConnectionIndicator = () => {
 
 export const Navbar = ({ variant = "landing" }) => {
   const { user, isAuthenticated, logout } = useAuth();
+  const { socket } = useSocket();
   const navigate = useNavigate();
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -47,44 +48,52 @@ export const Navbar = ({ variant = "landing" }) => {
   const [friendStats, setFriendStats] = useState({ onlineCount: 0, pendingRequestsCount: 0 });
 
   // Sync friend count & pending request badges
-  useEffect(() => {
+  const loadFriendCounts = useCallback(async () => {
     if (!isAuthenticated) return;
+    try {
+      const [friendsRes, requestsRes] = await Promise.allSettled([
+        friendsApi.getFriends(),
+        friendsApi.getRequests()
+      ]);
 
-    let isMounted = true;
-    const loadFriendCounts = async () => {
-      try {
-        const [friendsRes, requestsRes] = await Promise.allSettled([
-          friendsApi.getFriends(),
-          friendsApi.getRequests()
-        ]);
-
-        let onlineCount = 0;
-        if (friendsRes.status === 'fulfilled') {
-          const list = Array.isArray(friendsRes.value) ? friendsRes.value : (friendsRes.value?.friends || friendsRes.value?.data || []);
-          onlineCount = list.filter(f => f.presence?.isOnline).length;
-        }
-
-        let pendingCount = 0;
-        if (requestsRes.status === 'fulfilled') {
-          const incoming = requestsRes.value?.incoming || [];
-          pendingCount = incoming.length;
-        }
-
-        if (isMounted) {
-          setFriendStats({ onlineCount, pendingRequestsCount: pendingCount });
-        }
-      } catch (e) {
-        // silent catch
+      let onlineCount = 0;
+      if (friendsRes.status === 'fulfilled') {
+        const list = Array.isArray(friendsRes.value) ? friendsRes.value : (friendsRes.value?.friends || friendsRes.value?.data || []);
+        onlineCount = list.filter(f => f.presence?.isOnline).length;
       }
-    };
 
+      let pendingCount = 0;
+      if (requestsRes.status === 'fulfilled') {
+        const incoming = requestsRes.value?.incoming || [];
+        pendingCount = incoming.length;
+      }
+
+      setFriendStats({ onlineCount, pendingRequestsCount: pendingCount });
+    } catch (e) {
+      // silent catch
+    }
+  }, [isAuthenticated]);
+
+  useEffect(() => {
     loadFriendCounts();
     const interval = setInterval(loadFriendCounts, 15000);
-    return () => {
-      isMounted = false;
-      clearInterval(interval);
+    return () => clearInterval(interval);
+  }, [loadFriendCounts, friendsDrawerOpen]);
+
+  // Real-time updates via socket presence notifications
+  useEffect(() => {
+    if (!socket) return;
+
+    const handlePresenceUpdated = () => {
+      loadFriendCounts();
     };
-  }, [isAuthenticated, friendsDrawerOpen]);
+
+    socket.on(SERVER_EVENTS.FRIEND_PRESENCE_UPDATED, handlePresenceUpdated);
+
+    return () => {
+      socket.off(SERVER_EVENTS.FRIEND_PRESENCE_UPDATED, handlePresenceUpdated);
+    };
+  }, [socket, loadFriendCounts]);
 
   // Close mobile drawer on route change
   useEffect(() => {

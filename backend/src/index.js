@@ -67,6 +67,10 @@ async function startServer() {
         if (redisClient.status === 'ready') {
              console.log('[API] Redis Connected');
         }
+
+        // Clean up stale presence keys from previous server sessions
+        const presenceService = require('./modules/presence/presence.service');
+        await presenceService.cleanupAllPresence();
         
         server.listen(PORT, () => {
             console.log('[API] Socket.IO Started');

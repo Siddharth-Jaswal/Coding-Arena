@@ -168,6 +168,17 @@ class RoomService {
         multi.set(`matchmaking:player:${player2.id}`, roomId, 'EX', 10800);
         await multi.exec();
 
+        // Update presence for both players to in_match
+        const presenceService = require('../presence/presence.service');
+        try {
+            await Promise.all([
+                presenceService.updateStatus(player1.id, 'in_match', roomId),
+                presenceService.updateStatus(player2.id, 'in_match', roomId)
+            ]);
+        } catch (presErr) {
+            console.error('Failed to update presence in createRoom:', presErr);
+        }
+
         // Broadcast MATCH_FOUND and ROOM_CREATED to specific sockets and user rooms
         const roomPayload = roomState;
 

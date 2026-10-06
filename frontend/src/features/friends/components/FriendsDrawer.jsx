@@ -73,8 +73,31 @@ export const FriendsDrawer = ({ isOpen, onClose }) => {
       }
       fetchFriends();
       fetchRequests();
+
+      // Poll every 6 seconds while the drawer is open to guarantee fresh presence
+      const pollTimer = setInterval(() => {
+        fetchFriends();
+        fetchRequests();
+      }, 6000);
+
+      return () => clearInterval(pollTimer);
     }
   }, [isOpen, fetchFriends, fetchRequests]);
+
+  // Listen for real-time presence updates from friends
+  useEffect(() => {
+    if (!socket) return;
+
+    const handlePresenceUpdated = ({ userId, presence }) => {
+      setFriends(prev => prev.map(f => (f.id === userId ? { ...f, presence } : f)));
+    };
+
+    socket.on(SERVER_EVENTS.FRIEND_PRESENCE_UPDATED, handlePresenceUpdated);
+
+    return () => {
+      socket.off(SERVER_EVENTS.FRIEND_PRESENCE_UPDATED, handlePresenceUpdated);
+    };
+  }, [socket]);
 
   // Debounced user search
   useEffect(() => {
