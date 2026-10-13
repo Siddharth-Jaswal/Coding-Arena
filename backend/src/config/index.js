@@ -37,6 +37,9 @@ const allowedOriginsRaw = isProdMode
 
 const allowedOrigins = allowedOriginsRaw.split(',').map(o => o.trim()).filter(Boolean);
 
+const judgeWorkerUrl = process.env.JUDGE_WORKER_URL
+    || (isProdMode ? (process.env.PROD_JUDGE_WORKER_URL || 'https://codearena-judge-worker.onrender.com') : (process.env.LOCAL_JUDGE_WORKER_URL || ''));
+
 const config = {
     mode: isProdMode ? 'prod' : 'local',
     isProduction,
@@ -44,6 +47,7 @@ const config = {
     port: process.env.PORT || 5000,
     databaseUrl,
     redisUrl,
+    judgeWorkerUrl,
     jwtSecret: process.env.JWT_SECRET || 'fallback_secret_for_dev_only_please_change',
     jwtExpiresIn: process.env.JWT_EXPIRES_IN || '7d',
     bcryptRounds: parseInt(process.env.BCRYPT_ROUNDS || '10', 10),

@@ -1,5 +1,6 @@
 const pool = require('../config/db');
 const { judgeQueue } = require('../queue/judgeQueue');
+const judgeWorkerPingService = require('./judgeWorkerPingService');
 
 class SubmissionService {
     async createSubmission(userId, problemId, language, sourceCode) {
@@ -31,6 +32,9 @@ class SubmissionService {
             });
 
             await client.query('COMMIT');
+
+            // Trigger non-blocking wake-up ping to ensure judge worker rolls up if sleeping
+            judgeWorkerPingService.wakeUpWorker(`submission_${submission.id}`);
 
             return {
                 submission_id: submission.id,

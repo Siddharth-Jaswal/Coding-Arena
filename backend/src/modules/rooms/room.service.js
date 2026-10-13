@@ -179,6 +179,10 @@ class RoomService {
             console.error('Failed to update presence in createRoom:', presErr);
         }
 
+        // Pre-emptively trigger judge worker wake-up so it's warm before players submit code
+        const judgeWorkerPingService = require('../../services/judgeWorkerPingService');
+        judgeWorkerPingService.wakeUpWorker('ranked_match_created');
+
         // Broadcast MATCH_FOUND and ROOM_CREATED to specific sockets and user rooms
         const roomPayload = roomState;
 
@@ -703,6 +707,10 @@ class RoomService {
         multi.set(`matchmaking:player:${player1.id}`, roomId, 'EX', 10800);
         multi.set(`matchmaking:player:${player2.id}`, roomId, 'EX', 10800);
         await multi.exec();
+
+        // Pre-emptively trigger judge worker wake-up so it's warm before players submit code
+        const judgeWorkerPingService = require('../../services/judgeWorkerPingService');
+        judgeWorkerPingService.wakeUpWorker('custom_match_created');
 
         // Broadcast MATCH_FOUND and ROOM_CREATED
         const p1Target = io.to(`user:${player1.id}`);

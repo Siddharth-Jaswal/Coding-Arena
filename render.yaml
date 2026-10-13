@@ -20,6 +20,8 @@ services:
         generateValue: true
       - key: ALLOWED_ORIGINS
         value: http://localhost:5173
+      - key: JUDGE_WORKER_URL
+        value: https://codearena-judge-worker.onrender.com
 
   # 2. Judge Worker (Docker Container with g++ compiler)
   - type: web
